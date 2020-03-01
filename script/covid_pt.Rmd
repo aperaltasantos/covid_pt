@@ -1,0 +1,192 @@
+---
+title: "COVID-19 em Portugal"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+author: "por [Andre Peralta-santos](https://www.aperaltasantos.com/) - `r format(Sys.time(), '%d %B %Y')`"
+mail: "andre.peralta.santos@gmail.com"
+linkedin: "aperaltasantos"
+twitter: "andre_peralta"
+github: "aperaltasantos"
+logo: "anmsp.png"
+home: "https://www.aperaltasantos.com/"
+output:
+  epuRate::epurate:
+    toc: TRUE
+    number_sections: FALSE
+    code_folding: "hide"
+---
+
+<style>
+#TOC {
+  top: 1%;
+  opacity: 0.5;
+}
+#TOC:hover {
+  opacity: 1;
+}
+</style>
+
+  
+<br><br>
+
+> Projeto de monitorização da epidemia de COVID-19 em Portugal. Todos os dados são públicos e podem ser acedidos no site da Direção-Geral da Saúde. [Dados](https://www.dgs.pt/corona-virus/documentos/boletim-informativo.aspx) 
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = FALSE,
+  eval = TRUE
+  )
+
+set.seed(1) # Set the seed is important for getting reproducible reports 
+## Clean the envorment 
+rm(list=ls())
+options(scipen=4)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+library(tidyverse)
+library(lubridate)
+library(googlesheets)
+require(RCurl)
+library(viridis)
+library(flexdashboard)
+```
+
+```{r}
+
+u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?output=csv"
+tc <- getURL(u, ssl.verifypeer=FALSE)
+covid_pt <- read.csv(textConnection(tc))
+```
+
+```{r}
+covid_pt$Data <- as.Date(covid_pt$Data,
+                         "%d-%m-%Y"
+                         )
+
+covid_pt<-covid_pt  %>%
+  mutate(week = week(Data)
+  )
+```
+
+```{r}
+covid_pt_l <- covid_pt %>%
+  pivot_longer(
+   cols = "Suspeitos":"Recuperados",
+   names_to = "tipo",
+   values_to = "value",
+   values_drop_na = TRUE
+ ) 
+
+covid_pt_last<-covid_pt %>% 
+  filter(Data==last(Data))
+```
+
+# Totais de COVID-19  {#text-formatting}
+***
+
+```{r}
+
+df <- data.frame(
+    x = rep(seq(2, 15, 6.5), 2),
+    y = c(rep(6.5, 3), rep(2,3)),
+    h = rep(4.25, 6),
+    w = rep(6.25, 6),
+    value = c(covid_pt_last$Suspeitos,
+             covid_pt_last$Confirmados,
+             covid_pt_last$Internados,
+             covid_pt_last$Intensivos,
+             covid_pt_last$Mortes,
+             covid_pt_last$Recuperados),
+    info = c("Suspeitos",
+             "Confirmados",
+             "Internados",
+             "Intensivos",
+             "Mortes",
+             "Recuperados"),
+    color = factor(1:6)
+)
+
+ggplot(df, aes(x, y, height = h, width = w, label = info)) +
+    geom_tile(aes(fill = color)) +
+    geom_text(color = "white", fontface = "bold", size = 10,
+              aes(label = value, x = x - 2.9, y = y + 1), hjust = 0) +
+    geom_text(color = "white", fontface = "bold",
+              aes(label = info, x = x - 2.9, y = y - 1), hjust = 0, size=6) +
+    coord_fixed() +
+      scale_fill_viridis(alpha = 0.8, 
+                       begin = 0, 
+                       end = 0.7, 
+                       direction = -1,
+                       discrete = T, 
+                       option = "D") +
+    theme_void() +
+    guides(fill = FALSE)
+```
+
+
+# Suspeitos de COVID-19 por dia  {#text-formatting}
+***
+```{r}
+
+p1 <- ggplot() +
+
+    geom_bar(data = covid_pt, 
+             aes(
+                 y=Suspeitos, 
+                 x=Data
+                 ),
+             fill = "#287D8EFF",
+             alpha=0.9,
+             stat="identity") +
+  
+  geom_text(data = covid_pt,
+            aes(y=Suspeitos, 
+                x=Data,
+                label=Suspeitos), 
+            position=position_dodge(width=0.9),
+            size=3,
+            vjust= - 0.35) +
+  
+#  scale_fill_manual(values = c("#E7B800")) +
+  
+  scale_x_date( breaks = "2 day", date_labels = "%b %d") +
+  
+  labs(title = "Casos suspeitos de COVID-19 em Portugal",
+     subtitle = Sys.time(), '%d %B %Y',
+     y = "Número",
+     x = "Data", 
+     fill = "", 
+     caption = "Fonte: Direção-Geral da Saúde") +
+  
+theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+
+p1
+ggsave(filename = "covid_pt.png")
+```
+
+
+
+
+
+
+
+
+
+
