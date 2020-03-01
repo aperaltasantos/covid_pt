@@ -1,7 +1,7 @@
 ---
 title: "COVID-19 em Portugal"
 knit: (function(input_file, encoding) {
-  out_dir <- 'docs';
+  out_dir <- 'reports';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
@@ -10,7 +10,6 @@ mail: "andre.peralta.santos@gmail.com"
 linkedin: "aperaltasantos"
 twitter: "andre_peralta"
 github: "aperaltasantos"
-logo: "anmsp.png"
 home: "https://www.aperaltasantos.com/"
 output:
   epuRate::epurate:
@@ -28,9 +27,6 @@ output:
   opacity: 1;
 }
 </style>
-
-  
-<br><br>
 
 > Projeto de monitorização da epidemia de COVID-19 em Portugal. Todos os dados são públicos e podem ser acedidos no site da Direção-Geral da Saúde. [Dados](https://www.dgs.pt/corona-virus/documentos/boletim-informativo.aspx) 
 
@@ -50,13 +46,14 @@ options(scipen=4)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
-
 library(tidyverse)
 library(lubridate)
 library(googlesheets)
 require(RCurl)
 library(viridis)
 library(flexdashboard)
+library(epuRate)
+library(here)
 ```
 
 ```{r}
@@ -177,8 +174,10 @@ theme_minimal() +
         axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "none") 
 
-p1
-ggsave(filename = "covid_pt.png")
+ggsave( here::here("figures", paste(Sys.time(),"suspeitos.png")), 
+        dpi = "retina"
+        )
+
 ```
 
 
