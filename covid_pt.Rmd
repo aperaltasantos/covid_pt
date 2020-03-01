@@ -4,7 +4,7 @@ knit: (function(input_file, encoding) {
   out_dir <- 'reports';
   rmarkdown::render(input_file,
  encoding=encoding,
- output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+ output_file=file.path(dirname(input_file), out_dir, paste(Sys.time(),'report.html')))})
 author: "por [Andre Peralta-santos](https://www.aperaltasantos.com/) - `r format(Sys.time(), '%d %B %Y')`"
 mail: "andre.peralta.santos@gmail.com"
 linkedin: "aperaltasantos"
@@ -173,7 +173,7 @@ theme_minimal() +
         plot.title = element_text(face = "bold", size = 12),
         axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "none") 
-
+p1
 ggsave( here::here("figures", paste(Sys.time(),"suspeitos.png")), 
         dpi = "retina"
         )
