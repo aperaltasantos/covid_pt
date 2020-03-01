@@ -54,6 +54,10 @@ library(viridis)
 library(flexdashboard)
 library(epuRate)
 library(here)
+
+library(rjson)
+library(jsonlite)
+library(RCurl)
 ```
 
 ```{r}
@@ -181,11 +185,161 @@ ggsave( here::here("figures", paste(Sys.time(),"suspeitos.png")),
 ```
 
 
+# Monitorização da Resposta {#text-formatting}
+***
+
+## Linha SNS24
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Base URL path
+base_url = "http://transparencia.sns.gov.pt/api/records/1.0/search/?dataset=atividade-operacional-sns-24&rows=-1&sort=periodo&facet=periodo&facet=indicador"
+ # encode the URL with characters for each space.
+base_url <- URLencode(base_url)
+```
 
 
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+data_df <- fromJSON(getURL(base_url))
+sns1 <- as.data.frame(data_df$records)
+
+# Convert JSON to data frame
+sns1 <- fromJSON(getURL(base_url))
+sns1 <- as.data.frame(sns1$records)
+sns1 <- as.data.frame(sns1$fields)
+```
+
+```{r}
+# Transform to date with Libridate 
+sns1$date <- as.Date(sns1$periodo, "%Y-%m-%d")
+sns1$year <- as.factor(format(sns1$date,'%Y'))
+sns1$week <- lubridate::isoweek(sns1$date)
+
+sns2 <- sns1 %>%
+   select(
+     date, indicador, valorabsoluto, year, week
+   ) %>%
+  filter(
+    year==2020,
+    indicador=="Chamadas Abandonadas após 15s"
+  )
+
+sns3 <- sns1 %>%
+   select(
+     date, indicador, valorabsoluto, year, week
+   ) %>%
+  filter(
+    year==2020,
+    indicador=="Chamadas Atendidas"
+  )
+```
 
 
+```{r}
 
+p1 <- ggplot()+
+  
+      geom_line(data = sns2,                 
+               aes(x=date,               
+                   y = valorabsoluto),
+             color = "#287D8EFF",
+             alpha=0.9,
+             size=1 ) +
+  
+        annotate(geom = "text", 
+           x = as.Date("2020-01-31"), 
+           y = 320, 
+           label = "Primeiro caso suspeito", 
+           hjust = "left",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-01-31"), 
+           y = 	0,
+           xend = as.Date("2020-01-31"),
+           yend = 300,
+           colour="red",
+           linetype="dashed") +
+  
+  scale_x_date( breaks = "2 day", 
+                date_labels = "%b %d") +
+  
+  labs(title = "Chamadas não atendidas no SNS 24",
+     subtitle = Sys.time(), '%d %B %Y',
+     y = "Número",
+     x = "Data", 
+     fill = "", 
+     caption = "Fonte: Portal da transparencia") +
+  
+theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+p1
 
+ggsave( here::here("figures", paste(Sys.time(),"sns24_n_atentida.png")), 
+        dpi = "retina"
+        )
 
+```
+
+```{r}
+
+p1 <- ggplot()+
+  
+      geom_line(data = sns3,                 
+               aes(x=date,               
+                   y = valorabsoluto),
+             color = "#287D8EFF",
+             alpha=0.9,
+             size=1 ) +
+  
+        annotate(geom = "text", 
+           x = as.Date("2020-02-01"), 
+           y = 6500, 
+           label = "Primeiro caso suspeito", 
+           hjust = "left",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-01-31"), 
+           y = 	4000,
+           xend = as.Date("2020-01-31"),
+           yend = 7000,
+           colour="red",
+           linetype="dashed") +
+  
+  scale_x_date( breaks = "2 day", 
+                date_labels = "%b %d") +
+  
+  labs(title = "Chamadas atendidas no SNS 24",
+     subtitle = Sys.time(), '%d %B %Y',
+     y = "Número",
+     x = "Data", 
+     fill = "", 
+     caption = "Fonte: Portal da transparencia") +
+  
+theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+p1
+
+ggsave( here::here("figures", paste(Sys.time(),"sns24_atentida.png")), 
+        dpi = "retina"
+        )
+
+```
 
