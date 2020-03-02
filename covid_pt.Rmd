@@ -184,6 +184,126 @@ ggsave( here::here("figures", paste(Sys.time(),"suspeitos.png")),
 
 ```
 
+# Confirmados de COVID-19  {#text-formatting}
+***
+
+```{r}
+
+u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?gid=203224328&single=true&output=csv"
+tc <- getURL(u, ssl.verifypeer=FALSE)
+covid_pt_cases <- read.csv(textConnection(tc))
+
+load("covid_hosp.RData")
+covid_pt_cases<- left_join(covid_pt_cases, covid_hosp, by="hospital")
+```
+
+```{r}
+covid_pt_cases$Data <- as.Date(covid_pt_cases$Data,
+                         "%d-%m-%Y"
+                         )
+
+
+covid_pt_cases_sum<- covid_pt_cases %>%
+  group_by(Data, hospital, lat, long) %>%
+  summarise(conf=n()) %>%
+  mutate(week = week(Data)
+  )
+
+
+```
+
+## Mapa casos confirmados
+```{r}
+# Library
+library(leaflet)
+
+# Create a color palette with handmade bins.
+mybins <- seq(0, 100, by=25)
+mypalette <- colorBin( palette="YlOrBr", 
+                       domain=covid_pt_cases_sum$conf, 
+                       na.color="transparent", 
+                       bins=mybins)
+
+# Prepare the text for the tooltip:
+mytext <- paste(
+   "", covid_pt_cases_sum$hospital, "<br/>",
+   "Casos confirmados: ", covid_pt_cases_sum$conf) %>%
+  lapply(htmltools::HTML)
+
+# Final Map
+m <- leaflet(covid_pt_cases_sum) %>% 
+  addTiles()  %>% 
+  setView( lat=39.80846, lng=-8.09883 , zoom=7) %>%
+  addProviderTiles("Hydda.Base") %>%
+  addCircleMarkers(~long, ~lat, 
+    fillColor = ~mypalette(conf), 
+    fillOpacity = 0.7, 
+    color="white", 
+    radius=8, 
+    stroke=FALSE,
+    label = mytext,
+    labelOptions = labelOptions( style = list("font-weight" = "normal", padding = "3px 8px"), 
+                                 textsize = "13px", direction = "auto")
+  ) %>%
+  addLegend( pal=mypalette, 
+             values=~conf, 
+             opacity=0.9, 
+             title = "Casos confirmados COVID19", 
+             position = "bottomright" )
+
+m 
+```
+
+
+## Confirmados por dia
+```{r}
+
+p1 <- ggplot() +
+
+    geom_bar(data = covid_pt, 
+             aes(
+                 y=Confirmados, 
+                 x=Data
+                 ),
+             fill = "#287D8EFF",
+             alpha=0.9,
+             stat="identity") +
+  
+  geom_text(data = covid_pt,
+            aes(y=Confirmados, 
+                x=Data,
+                label=Confirmados), 
+            position=position_dodge(width=0.9),
+            size=3,
+            vjust= - 0.35) +
+  
+#  scale_fill_manual(values = c("#E7B800")) +
+  
+  scale_x_date( breaks = "2 day", date_labels = "%b %d") +
+  
+  labs(title = "Casos confirmados de COVID-19 em Portugal",
+     subtitle = Sys.time(), '%d %B %Y',
+     y = "Número",
+     x = "Data", 
+     fill = "", 
+     caption = "Fonte: Direção-Geral da Saúde") +
+  
+theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+p1
+ggsave( here::here("figures", paste(Sys.time(),"confirmados.png")), 
+        dpi = "retina"
+        )
+
+```
 
 # Monitorização da Resposta {#text-formatting}
 ***
@@ -342,4 +462,28 @@ ggsave( here::here("figures", paste(Sys.time(),"sns24_atentida.png")),
         )
 
 ```
+
+## Mortalidade 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Base URL path
+base_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?gid=203224328&single=true&output=csv"
+
+ # encode the URL with characters for each space.
+base_url <- URLencode(base_url)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#data_df <- fromJSON(getURL(base_url))
+#mortalidade <- as.data.frame(data_df$records)
+
+# Convert JSON to data frame
+#mortalidade <- fromJSON(getURL(base_url))
+#mortalidade <- as.data.frame(mortalidade$records)
+#mortalidade <- as.data.frame(mortalidade$fields)
+```
+
+
 
