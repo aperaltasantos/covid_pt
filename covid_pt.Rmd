@@ -286,7 +286,7 @@ p1 <- ggplot() +
      y = "Número",
      x = "Data", 
      fill = "", 
-     caption = "Fonte: Direção-Geral da Saúde") +
+     caption = "Fonte: Direção-Geral da Saúde \ndata de confirmacao do diagnostico") +
   
 theme_minimal() +
   theme(panel.grid.minor = element_blank(),
@@ -369,7 +369,7 @@ p1 <- ggplot()+
         annotate(geom = "text", 
            x = as.Date("2020-01-31"), 
            y = 320, 
-           label = "Primeiro caso suspeito", 
+           label = "1 caso suspeito", 
            hjust = "left",
            size=3) +
   
@@ -377,6 +377,21 @@ p1 <- ggplot()+
            x = as.Date("2020-01-31"), 
            y = 	0,
            xend = as.Date("2020-01-31"),
+           yend = 300,
+           colour="red",
+           linetype="dashed") +
+  
+          annotate(geom = "text", 
+           x = as.Date("2020-03-01"), 
+           y = 320, 
+           label = "1 caso Confirmado", 
+           hjust = "left",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-03-01"), 
+           y = 	0,
+           xend = as.Date("2020-03-01"),
            yend = 300,
            colour="red",
            linetype="dashed") +
@@ -432,6 +447,21 @@ p1 <- ggplot()+
            y = 	4000,
            xend = as.Date("2020-01-31"),
            yend = 7000,
+           colour="red",
+           linetype="dashed") +
+  
+            annotate(geom = "text", 
+           x = as.Date("2020-03-01"), 
+           y = 320, 
+           label = "1 caso Confirmado", 
+           hjust = "left",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-03-01"), 
+           y = 	0,
+           xend = as.Date("2020-03-01"),
+           yend = 300,
            colour="red",
            linetype="dashed") +
   
