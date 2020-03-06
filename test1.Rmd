@@ -66,32 +66,38 @@ covid_pt <- mutate(covid_pt,
                    Suspeitos_lag = lag(x = Suspeitos, 
                                         n = 1, 
                                         order_by = Data),
-                   Suspeitos_var=Suspeitos-Suspeitos_lag, 
+                   Suspeitos_var=Suspeitos-Suspeitos_lag,
+                   Suspeitos_sign=if_else(Suspeitos_var>=0,"+","-"),
                    
                    Confirmados_lag = lag(x = Confirmados, 
                                         n = 1, 
                                         order_by = Data),
                    Confirmados_var=Confirmados-Confirmados_lag,
+                   Confirmados_sign=if_else(Confirmados_var>=0,"+","-"),
                    
                    Internados_lag1 = lag(x = Internados, 
                                         n = 1, 
                                         order_by = Data),
                    Internados_var=Internados-Internados_lag1,
+                   Internados_sign=if_else(Internados_var>=0,"+","-"),
                    
                     Intensivos_lag1 = lag(x = Intensivos, 
                                         n = 1, 
                                         order_by = Data),
                    Intensivos_var=Intensivos-Intensivos_lag1,
+                   Intensivos_sign=if_else(Intensivos_var>=0,"+","-"),
                    
                    Mortes_lag1 = lag(x = Mortes, 
-                                        n = 1, 
-                                        order_by = Data),
+                                     n = 1, 
+                                     order_by = Data),
                    Mortes_var=Mortes-Mortes_lag1,
+                   Mortes_sign=if_else(Mortes_var>=0,"+","-"),
                    
-                                      AS_lag1 = lag(x = AS, 
+                   AS_lag1 = lag(x = AS, 
                                         n = 1, 
                                         order_by = Data),
-                   AS_var=AS-AS_lag1
+                   AS_var=AS-AS_lag1,
+                   AS_sign=if_else(AS_var>=0,"+","-")
                    ) 
 ```
 
@@ -130,6 +136,13 @@ df <- data.frame(
              covid_pt_last$Mortes_var,
              covid_pt_last$AS_var),
     
+      value_sign = c(covid_pt_last$Suspeitos_sign,
+             covid_pt_last$Confirmados_sign,
+             covid_pt_last$Internados_sign,
+             covid_pt_last$Intensivos_sign,
+             covid_pt_last$Mortes_sign,
+             covid_pt_last$AS_sign),
+    
     info = c("Suspeitos",
              "Confirmados",
              "Internados",
@@ -142,8 +155,8 @@ df <- data.frame(
 
 ggplot(df, aes(x, y, height = h, width = w, label = info)) +
     geom_tile(aes(fill = color)) +
-    geom_text(color = "white", fontface = "bold", size = 8.5,
-              aes(label = paste(value, "(+", value_var,")"), x = x - 2.9, y = y + 1), hjust = 0) +
+    geom_text(color = "white", fontface = "bold", size = 8,
+              aes(label = paste(value,"(",value_sign,value_var,")"), x = x - 2.9, y = y + 1), hjust = 0) +
     geom_text(color = "white", fontface = "bold",
               aes(label = info, x = x - 2.9, y = y - 1), hjust = 0, size=6) +
     coord_fixed() +
