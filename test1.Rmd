@@ -1,9 +1,9 @@
 ---
-title: ""
+title: "Test1"
 shorttitle: ""
 author: ""
 date: '`r Sys.Date()`'
-subtitle: A Less Traveled Road to PDF and Printing
+subtitle: Test1
 output:
   pagedown::html_letter:
         self_contained: false
@@ -13,6 +13,7 @@ knit: pagedown::chrome_print
 ---
 
 ![ANMSP logo](ANMSP.jpg){.logo} <!-- .element height="150%" width="150%" -->
+
 ```{r, include=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -59,6 +60,39 @@ covid_pt$Data <- as.Date(covid_pt$Data,
 covid_pt<-covid_pt  %>%
   mutate(week = week(Data)
   )
+
+             
+covid_pt <- mutate(covid_pt, 
+                   Suspeitos_lag = lag(x = Suspeitos, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Suspeitos_var=Suspeitos-Suspeitos_lag, 
+                   
+                   Confirmados_lag = lag(x = Confirmados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Confirmados_var=Confirmados-Confirmados_lag,
+                   
+                   Internados_lag1 = lag(x = Internados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Internados_var=Internados-Internados_lag1,
+                   
+                    Intensivos_lag1 = lag(x = Intensivos, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Intensivos_var=Intensivos-Intensivos_lag1,
+                   
+                   Mortes_lag1 = lag(x = Mortes, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Mortes_var=Mortes-Mortes_lag1,
+                   
+                                      AS_lag1 = lag(x = AS, 
+                                        n = 1, 
+                                        order_by = Data),
+                   AS_var=AS-AS_lag1
+                   ) 
 ```
 
 ```{r}
@@ -88,6 +122,14 @@ df <- data.frame(
              covid_pt_last$Intensivos,
              covid_pt_last$Mortes,
              covid_pt_last$AS),
+    
+    value_var = c(covid_pt_last$Suspeitos_var,
+             covid_pt_last$Confirmados_var,
+             covid_pt_last$Internados_var,
+             covid_pt_last$Intensivos_var,
+             covid_pt_last$Mortes_var,
+             covid_pt_last$AS_var),
+    
     info = c("Suspeitos",
              "Confirmados",
              "Internados",
@@ -97,10 +139,11 @@ df <- data.frame(
     color = factor(1:6)
 )
 
+
 ggplot(df, aes(x, y, height = h, width = w, label = info)) +
     geom_tile(aes(fill = color)) +
-    geom_text(color = "white", fontface = "bold", size = 10,
-              aes(label = value, x = x - 2.9, y = y + 1), hjust = 0) +
+    geom_text(color = "white", fontface = "bold", size = 8.5,
+              aes(label = paste(value, "(+", value_var,")"), x = x - 2.9, y = y + 1), hjust = 0) +
     geom_text(color = "white", fontface = "bold",
               aes(label = info, x = x - 2.9, y = y - 1), hjust = 0, size=6) +
     coord_fixed() +
