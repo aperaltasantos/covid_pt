@@ -1,0 +1,395 @@
+---
+title: "COVID-19 Portugal | `r format(Sys.time(), '%d %b %y - %H %p (%Z)')`"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+output: 
+  flexdashboard::flex_dashboard:
+    theme: default
+    orientation: rows
+    vertical_layout: scroll
+    social: [ "twitter", "facebook", "menu" ]
+    navbar:
+      - { title: "About", href: "https://github.com/aperaltasantos/covid_pt" }
+---
+
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = FALSE,
+  eval = TRUE
+  )
+
+set.seed(1) # Set the seed is important for getting reproducible reports 
+## Clean the envorment 
+rm(list=ls())
+options(scipen=4)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)
+library(lubridate)
+library(googlesheets)
+require(RCurl)
+library(viridis)
+library(flexdashboard)
+library(epuRate)
+library(here)
+library(rjson)
+library(jsonlite)
+library(RCurl)
+```
+
+```{r}
+
+u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?output=csv"
+tc <- getURL(u, ssl.verifypeer=FALSE)
+covid_pt <- read.csv(textConnection(tc))
+```
+
+```{r}
+covid_pt$Data <- as.Date(covid_pt$Data,
+                         "%d-%m-%Y"
+                         )
+
+covid_pt<-covid_pt  %>%
+  mutate(week = week(Data)
+  )
+
+             
+covid_pt <- mutate(covid_pt, 
+                   Suspeitos_lag = lag(x = Suspeitos, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Suspeitos_var=Suspeitos-Suspeitos_lag,
+                   Suspeitos_sign=if_else(Suspeitos_var>=0,"+","-"),
+                   
+                   Confirmados_lag = lag(x = Confirmados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Confirmados_var=Confirmados-Confirmados_lag,
+                   Confirmados_sign=if_else(Confirmados_var>=0,"+","-"),
+                   
+                   Internados_lag1 = lag(x = Internados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Internados_var=Internados-Internados_lag1,
+                   Internados_sign=if_else(Internados_var>=0,"+","-"),
+                   
+                    Intensivos_lag1 = lag(x = Intensivos, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Intensivos_var=Intensivos-Intensivos_lag1,
+                   Intensivos_sign=if_else(Intensivos_var>=0,"+","-"),
+                   
+                   Mortes_lag1 = lag(x = Mortes, 
+                                     n = 1, 
+                                     order_by = Data),
+                   Mortes_var=Mortes-Mortes_lag1,
+                   Mortes_sign=if_else(Mortes_var>=0,"+","-"),
+                   
+                   AS_lag1 = lag(x = AS, 
+                                        n = 1, 
+                                        order_by = Data),
+                   AS_var=AS-AS_lag1,
+                   AS_sign=if_else(AS_var>=0,"+","-")
+                   ) 
+```
+
+```{r}
+covid_pt_l <- covid_pt %>%
+  pivot_longer(
+   cols = "Suspeitos":"AS",
+   names_to = "tipo",
+   values_to = "value",
+   values_drop_na = TRUE
+ ) 
+
+covid_pt_last<-covid_pt %>% 
+  filter(Data==last(Data))
+```
+
+
+Vig. Epidemiologica
+=====================================  
+
+Row
+-----------------------------------------------------------------------
+
+### Em vigilância
+```{r}
+x1 <- covid_pt_last$AS
+x2<- covid_pt_last$AS_sign
+x3<- covid_pt_last$AS_var
+valueBox(paste(x1,"(",x2,x3,")"), 
+         icon = "fa-search",
+         color="#fdbe85")
+
+```
+
+### Suspeitos
+```{r}
+x1 <- covid_pt_last$Suspeitos
+x2<- covid_pt_last$Suspeitos_sign
+x3<- covid_pt_last$Suspeitos_var
+valueBox(paste(x1,"(",x2,x3,")"), 
+         icon = "fa-exclamation-triangle",
+         color="#fd8d3c")
+
+```
+
+### Confirmados
+```{r}
+x1 <- covid_pt_last$Confirmados
+x2<- covid_pt_last$Confirmados_sign
+x3<- covid_pt_last$Confirmados_var
+valueBox(paste(x1,"(",x2,x3,")"), 
+         icon = "fa-file-medical",
+         color="#e6550d")
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Internados
+```{r}
+x1 <- covid_pt_last$Internados
+x2<- covid_pt_last$Internados_sign
+x3<- covid_pt_last$Internados_var
+valueBox(paste(x1,"(",x2,x3,")"), 
+         icon = "fa-hospital",
+         color="#a63603")
+```
+
+### Intensivos
+```{r}
+x1 <- covid_pt_last$Intensivos
+x2<- covid_pt_last$Intensivos_sign
+x3<- covid_pt_last$Intensivos_var
+valueBox(paste(x1,"(",x2,x3,")"), 
+         icon = "fa-procedures",
+         color="#7f2704")
+
+```
+
+### Óbitos
+```{r}
+x1 <- covid_pt_last$Mortes
+x2<- covid_pt_last$Mortes_sign
+x3<- covid_pt_last$Mortes_var
+valueBox(paste(x1,"(",x2,x3,")"), 
+         icon = "fa-infinity",
+         color="#bdbdbd")
+```
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Suspeitos
+
+```{r}
+library(highcharter)
+
+highchart() %>% 
+  hc_chart(type = "column") %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Casos suspeitos de COVID-19 em Portugal") %>% 
+  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
+  hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
+  hc_yAxis(title = list(text = "Casos suspeitos")) %>% 
+  hc_add_series(data = covid_pt$Suspeitos,
+                name = "Suspeitos", color = "#fd8d3c") %>% 
+  hc_exporting(
+    enabled = TRUE
+  )
+```
+
+### Confirmados  
+
+```{r}
+
+highchart() %>% 
+  hc_chart(type = "column") %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Casos confirmados de COVID-19 em Portugal") %>% 
+  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
+  hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
+  hc_yAxis(title = list(text = "Casos confirmados")) %>% 
+  hc_add_series(data = covid_pt$Confirmados,
+                name = "Confirmados", color = "#e6550d") %>% 
+  hc_exporting(
+    enabled = TRUE
+  )
+```
+
+```{r}
+u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?gid=1697035743&single=true&output=csv"
+tc <- getURL(u, ssl.verifypeer=FALSE)
+map_pt_cases <- read.csv(textConnection(tc))
+
+```
+
+```{r}
+library(highcharter)
+mapdata <- get_data_from_map(download_map_data("countries/pt/pt-all"))
+
+```
+
+### Mapa confirmados 
+
+```{r}
+library("viridisLite")
+
+    hcmap("countries/pt/pt-all", 
+      data = map_pt_cases, 
+      value = "numero",
+      joinBy = c("hc-a2", "hc.key"), 
+      name = "Confirmados",
+      dataLabels = list(enabled = TRUE, 
+                        format = '{numero}'),
+      borderColor = "#252525", 
+      borderWidth = 0.15,
+      tooltip = list(valueDecimals = 0))%>%
+  hc_mapNavigation(enabled = FALSE) %>%
+#  hc_colorAxis(dataClasses = color_classes(c(seq(0, 10, by = 2), 50))) %>%
+  hc_colorAxis(stops = color_stops(10, rev(inferno(20)))) %>%
+  hc_title(text = "Mapa dos casos confirmados por distrito") %>% 
+  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores")   %>%
+  hc_legend(layout = "vertical", verticalAlign = "bottom",
+            align = "right", valueDecimals = 0)  %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_exporting(
+    enabled = TRUE
+  )
+
+```
+
+
+Resposta SNS 24
+=====================================
+
+Row 
+-----------------------------------------------------------------------
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Base URL path
+base_url = "http://transparencia.sns.gov.pt/api/records/1.0/search/?dataset=atividade-operacional-sns-24&rows=-1&sort=periodo&facet=periodo&facet=indicador"
+ # encode the URL with characters for each space.
+base_url <- URLencode(base_url)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+data_df <- fromJSON(getURL(base_url))
+sns1 <- as.data.frame(data_df$records)
+
+# Convert JSON to data frame
+sns1 <- fromJSON(getURL(base_url))
+sns1 <- as.data.frame(sns1$records)
+sns1 <- as.data.frame(sns1$fields)
+```
+
+```{r}
+# Transform to date with Libridate 
+sns1$date <- as.Date(sns1$periodo, "%Y-%m-%d")
+sns1$year <- as.factor(format(sns1$date,'%Y'))
+sns1$week <- lubridate::isoweek(sns1$date)
+
+sns2 <- sns1 %>%
+   select(
+     date, indicador, valorabsoluto, year, week
+   ) %>%
+  filter(
+    year==2020,
+    indicador=="Chamadas Abandonadas após 15s" | indicador=="Chamadas Atendidas"
+  ) 
+
+sns2 <- sns2 %>%
+  pivot_wider(names_from = indicador, values_from = valorabsoluto)
+
+sns2 <- sns2 %>%
+  rename(Abandonadas="Chamadas Abandonadas após 15s",
+         Atendidas="Chamadas Atendidas" ) %>%
+  mutate(percent=(Abandonadas/(Abandonadas+Atendidas))*100) %>% 
+  mutate(percent = round(percent, 1))
+           
+sns2_last<-sns2 %>% 
+  filter(date==first(date))
+```
+
+
+### Atendidas
+
+```{r}
+rate <- sns2_last$Atendidas
+gauge(rate, min = 0, max = 12000, symbol = '', gaugeSectors(
+  success = c(5000, 12000), warning = c(3000, 4999), danger = c(0, 2999)
+))
+```
+
+### Não atendidas 
+
+```{r}
+rating <- sns2_last$Abandonadas
+gauge(rating, min = 0, max = 5000, gaugeSectors(
+  success = c(0, 999), warning = c(1000, 2999), danger = c(3000, 5000)
+))
+```
+
+### Percent. não atendidas
+
+```{r}
+cancellations <- sns2_last$percent
+gauge(cancellations, min = 0, max = 100, symbol = '%',gaugeSectors(
+  success = c(0, 4.9), warning = c(5, 9.9), danger = c(10, 100)
+))
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+```{r}
+hc <- highchart() %>% 
+  hc_chart(type = "area") %>% 
+  hc_title(text = "Desempenho da linha SNS 24") %>% 
+  hc_subtitle(text = "Fonte: Portal da tranparencia") %>% 
+  hc_xAxis(categories = format(sns1$date, "%b %d")) %>% 
+  hc_yAxis(title = list(text = "Numero de chamadas")) %>% 
+#  hc_tooltip(pointFormat = "<span style=\"color:{series.color}\">{series.name}</span>:
+#             <b>{Atendidas: Atendidas}%</b> ({Abandonadas:,.0f} )<br/>",
+#             shared = TRUE) %>% 
+  hc_plotOptions(area = list(
+     stacking = "stacked",
+     lineColor = "#ffffff",
+     lineWidth = 1,
+     marker = list(
+       lineWidth = 1,
+       lineColor = "#ffffff"
+       ))
+     ) %>% 
+  hc_add_series(name = "Atendidas", data = sns2$Atendidas ) %>% 
+  hc_add_series(name = "Nao atendidas", data = sns2$Abandonadas)%>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_exporting(
+    enabled = TRUE
+  )  
+       
+hc
+```
+
+
+

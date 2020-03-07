@@ -1,0 +1,630 @@
+---
+title: "Test1"
+shorttitle: ""
+author: ""
+date: '`r Sys.Date()`'
+subtitle: Test1
+output:
+  pagedown::html_letter:
+        self_contained: false
+links-to-footnotes: true
+paged-footnotes: true
+knit: pagedown::chrome_print
+---
+
+![ANMSP logo](ANMSP.jpg){.logo} <!-- .element height="150%" width="150%" -->
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = FALSE,
+  eval = TRUE
+  )
+
+set.seed(1) # Set the seed is important for getting reproducible reports 
+## Clean the envorment 
+rm(list=ls())
+options(scipen=4)
+```
+
+<center> <h2>COVID-19 em Portugal `r format(Sys.time(), '%d %B %Y')`</h2> </center>
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)
+library(lubridate)
+library(googlesheets)
+require(RCurl)
+library(viridis)
+library(flexdashboard)
+library(epuRate)
+library(here)
+library(rjson)
+library(jsonlite)
+library(RCurl)
+```
+
+```{r}
+
+u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?output=csv"
+tc <- getURL(u, ssl.verifypeer=FALSE)
+covid_pt <- read.csv(textConnection(tc))
+```
+
+```{r}
+covid_pt$Data <- as.Date(covid_pt$Data,
+                         "%d-%m-%Y"
+                         )
+
+covid_pt<-covid_pt  %>%
+  mutate(week = week(Data)
+  )
+
+             
+covid_pt <- mutate(covid_pt, 
+                   Suspeitos_lag = lag(x = Suspeitos, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Suspeitos_var=Suspeitos-Suspeitos_lag,
+                   Suspeitos_sign=if_else(Suspeitos_var>=0,"+","-"),
+                   
+                   Confirmados_lag = lag(x = Confirmados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Confirmados_var=Confirmados-Confirmados_lag,
+                   Confirmados_sign=if_else(Confirmados_var>=0,"+","-"),
+                   
+                   Internados_lag1 = lag(x = Internados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Internados_var=Internados-Internados_lag1,
+                   Internados_sign=if_else(Internados_var>=0,"+","-"),
+                   
+                    Intensivos_lag1 = lag(x = Intensivos, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Intensivos_var=Intensivos-Intensivos_lag1,
+                   Intensivos_sign=if_else(Intensivos_var>=0,"+","-"),
+                   
+                   Mortes_lag1 = lag(x = Mortes, 
+                                     n = 1, 
+                                     order_by = Data),
+                   Mortes_var=Mortes-Mortes_lag1,
+                   Mortes_sign=if_else(Mortes_var>=0,"+","-"),
+                   
+                   AS_lag1 = lag(x = AS, 
+                                        n = 1, 
+                                        order_by = Data),
+                   AS_var=AS-AS_lag1,
+                   AS_sign=if_else(AS_var>=0,"+","-")
+                   ) 
+```
+
+```{r}
+covid_pt_l <- covid_pt %>%
+  pivot_longer(
+   cols = "Suspeitos":"AS",
+   names_to = "tipo",
+   values_to = "value",
+   values_drop_na = TRUE
+ ) 
+
+covid_pt_last<-covid_pt %>% 
+  filter(Data==last(Data))
+```
+
+
+```{r}
+
+df <- data.frame(
+    x = rep(seq(2, 15, 6.5), 2),
+    y = c(rep(5.75, 3), rep(2,3)),
+    h = rep(3.5, 6),
+    w = rep(6.25, 6),
+    value = c(covid_pt_last$Suspeitos,
+             covid_pt_last$Confirmados,
+             covid_pt_last$Internados,
+             covid_pt_last$Intensivos,
+             covid_pt_last$Mortes,
+             covid_pt_last$AS),
+    
+    value_var = c(covid_pt_last$Suspeitos_var,
+             covid_pt_last$Confirmados_var,
+             covid_pt_last$Internados_var,
+             covid_pt_last$Intensivos_var,
+             covid_pt_last$Mortes_var,
+             covid_pt_last$AS_var),
+    
+      value_sign = c(covid_pt_last$Suspeitos_sign,
+             covid_pt_last$Confirmados_sign,
+             covid_pt_last$Internados_sign,
+             covid_pt_last$Intensivos_sign,
+             covid_pt_last$Mortes_sign,
+             covid_pt_last$AS_sign),
+    
+    info = c("Suspeitos",
+             "Confirmados",
+             "Internados",
+             "Intensivos",
+             "Mortes",
+             "Em vigilância"),
+    color = factor(1:6)
+)
+
+
+ggplot(df, aes(x, y, height = h, width = w, label = info)) +
+    geom_tile(aes(fill = color)) +
+    geom_text(color = "white", fontface = "bold", size = 8,
+              aes(label = paste(value,"(",value_sign,value_var,")"), x = x - 2.9, y = y + 1), hjust = 0) +
+    geom_text(color = "white", fontface = "bold",
+              aes(label = info, x = x - 2.9, y = y - 1), hjust = 0, size=6) +
+    coord_fixed() +
+      scale_fill_viridis(alpha = 0.8, 
+                       begin = 0, 
+                       end = 0.7, 
+                       direction = -1,
+                       discrete = T, 
+                       option = "D") +
+    theme_void() +
+    guides(fill = FALSE)
+```
+
+\pagebreak 
+
+```{r}
+
+p1 <- ggplot() +
+
+    geom_bar(data = covid_pt, 
+             aes(
+                 y=Suspeitos, 
+                 x=Data
+                 ),
+             fill = "#287D8EFF",
+             alpha=0.9,
+             stat="identity") +
+  
+  geom_text(data = covid_pt,
+            aes(y=Suspeitos, 
+                x=Data,
+                label=Suspeitos), 
+            position=position_dodge(width=0.9),
+            size=3,
+            vjust= - 0.35) +
+  
+#  scale_fill_manual(values = c("#E7B800")) +
+  
+  scale_x_date( breaks = "2 day", date_labels = "%b %d") +
+  
+  labs(title = "Casos suspeitos de COVID-19 em Portugal",
+     subtitle = Sys.time(), '%d %B %Y',
+     y = "Número",
+     x = "Data", 
+     fill = "", 
+     caption = "Fonte: Direção-Geral da Saúde") +
+  
+theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+p1
+ggsave( here::here("figures", paste(Sys.time(),"suspeitos.png")), 
+        dpi = "retina"
+        )
+```
+
+\pagebreak 
+
+```{r}
+
+u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?gid=203224328&single=true&output=csv"
+tc <- getURL(u, ssl.verifypeer=FALSE)
+covid_pt_cases <- read.csv(textConnection(tc))
+
+#load("covid_hosp.RData")
+#covid_pt_cases<- left_join(covid_pt_cases, covid_hosp, by="hospital")
+```
+
+```{r}
+covid_pt_cases$Data <- as.Date(covid_pt_cases$Data,
+                         "%d-%m-%Y"
+                         )
+
+
+#covid_pt_cases_sum<- covid_pt_cases %>%
+#  group_by(Data, hospital, lat, long) %>%
+#  summarise(conf=n()) %>%
+#  mutate(week = week(Data)
+#  )
+
+
+```
+
+
+
+```{r}
+p1 <- ggplot() +
+
+    geom_bar(data = covid_pt, 
+             aes(
+                 y=Confirmados, 
+                 x=Data
+                 ),
+             fill = "#287D8EFF",
+             alpha=0.9,
+             stat="identity") +
+  
+  geom_text(data = covid_pt,
+            aes(y=Confirmados, 
+                x=Data,
+                label=Confirmados), 
+            position=position_dodge(width=0.9),
+            size=3,
+            vjust= - 0.35) +
+  
+#  scale_fill_manual(values = c("#E7B800")) +
+  
+  scale_x_date( breaks = "2 day", date_labels = "%b %d") +
+  
+  labs(title = "Casos confirmados de COVID-19 em Portugal",
+     subtitle = Sys.time(), '%d %B %Y',
+     y = "Número",
+     x = "Data", 
+     fill = "", 
+     caption = "Fonte: Direção-Geral da Saúde \nData de confirmacao do diagnostico") +
+  
+theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+p1
+ggsave( here::here("figures", paste(Sys.time(),"confirmados.png")), 
+        dpi = "retina"
+        )
+
+```
+
+
+
+```{r}
+library(GADMTools)
+library(rmapshaper)
+library(maptools)
+
+pt_map <- raster::getData(country = "PRT", level = 1, path = "") %>% 
+  # simplify
+  rmapshaper::ms_simplify(keep = 0.01) %>% 
+  # tidy to a dataframe
+  broom::tidy(region="NAME_1") %>%
+  #
+  filter(id != "Madeira") %>% filter(id != "Azores") %>%
+  
+  mutate(id = recode(id, 
+     "Évora" = "Evora",
+     "Santarém" = "Santarem",
+     "Santarém" = "Santarem",
+     "Setúbal" = "Setubal", 
+     "Bragança" = "Braganca",
+     ))
+
+# save(pt_map, file = "pt_map.RData")
+#load("pt_map.RData")
+# regions <-pt_map %>% select(id)   %>% unique()
+```
+
+```{r}
+u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?gid=1697035743&single=true&output=csv"
+tc <- getURL(u, ssl.verifypeer=FALSE)
+map_pt_cases <- read.csv(textConnection(tc))
+
+
+pt_map <- left_join(pt_map, map_pt_cases, by="id")
+
+
+```
+
+\pagebreak 
+```{r, fig.dim = c(5, 7)}
+# plot the map
+library(ggthemes)
+
+
+ggplot(data=pt_map) +
+  geom_map(map=pt_map, 
+           aes(x=long, 
+               y=lat, 
+               map_id=id, 
+               fill=as.factor(numero)),
+           color="#f7f7f7", 
+           size=0.25,
+           alpha=1) +
+
+labs(title = "Mapa dos casos confirmados por distrito",
+     subtitle = "",
+     fill = "Casos confirmados", 
+     caption = "Fonte: Direção-Geral da Saúde") +
+  
+   coord_map()+
+  
+  theme_map() +
+
+  theme(plot.title=element_text( face="bold", 
+                                 hjust=0.5,
+                                 lineheight=1.2),
+        plot.subtitle=element_text(hjust=0.5),
+        legend.position = "bottom",
+#    panel.border = element_blank(),
+#    panel.background = element_rect(fill = "transparent"),
+#    plot.background = element_rect(fill = "transparent", color = NA)
+  ) + 
+  
+      scale_fill_manual(values = c("#cccccc", 
+                                   "#fef0d9", 
+                                   "#fdcc8a",
+                                   "#fc8d59",
+                                   "#e34a33"
+                                   ),
+#  scale_fill_brewer (
+ #   type = "seq",
+#    palette = 1,
+    na.value = "gray55",
+    name = "Casos confirmados",
+    # here we use guide_colourbar because it is still a continuous scale
+          guide = guide_legend(
+            direction = "horizontal",
+            keyheight = unit(2, units = "mm"),
+            keywidth = unit(8, units = "mm"),
+            title.position = 'top',
+            # I shift the labels around, the should be placed 
+            # exactly at the right end of each legend key
+            title.hjust = 0.5,
+            label.hjust = 1,
+            nrow = 1,
+            byrow = T,
+            # also the guide needs to be reversed
+            reverse = F,
+            size=11,
+            label.position = "bottom"
+          )
+  )
+
+ggsave( here::here("figures", paste(Sys.time(),"mapa.png")), 
+        dpi = "retina"
+        )
+```
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Base URL path
+base_url = "http://transparencia.sns.gov.pt/api/records/1.0/search/?dataset=atividade-operacional-sns-24&rows=-1&sort=periodo&facet=periodo&facet=indicador"
+ # encode the URL with characters for each space.
+base_url <- URLencode(base_url)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+data_df <- fromJSON(getURL(base_url))
+sns1 <- as.data.frame(data_df$records)
+
+# Convert JSON to data frame
+sns1 <- fromJSON(getURL(base_url))
+sns1 <- as.data.frame(sns1$records)
+sns1 <- as.data.frame(sns1$fields)
+```
+
+```{r}
+# Transform to date with Libridate 
+sns1$date <- as.Date(sns1$periodo, "%Y-%m-%d")
+sns1$year <- as.factor(format(sns1$date,'%Y'))
+sns1$week <- lubridate::isoweek(sns1$date)
+
+sns2 <- sns1 %>%
+   select(
+     date, indicador, valorabsoluto, year, week
+   ) %>%
+  filter(
+    year==2020,
+    indicador=="Chamadas Abandonadas após 15s"
+  )
+
+sns3 <- sns1 %>%
+   select(
+     date, indicador, valorabsoluto, year, week
+   ) %>%
+  filter(
+    year==2020,
+    indicador=="Chamadas Atendidas"
+  )
+```
+
+
+
+```{r}
+
+p1 <- ggplot()+
+  
+      geom_line(data = sns2,                 
+               aes(x=date,               
+                   y = valorabsoluto),
+             color = "#287D8EFF",
+             alpha=0.9,
+             size=1 ) +
+  
+        annotate(geom = "text", 
+           x = as.Date("2020-01-31"), 
+           y = 390, 
+           label = "1 caso suspeito", 
+           hjust = "center",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-01-31"), 
+           y = 	0,
+           xend = as.Date("2020-01-31"),
+           yend = 300,
+           colour="red",
+           linetype="dashed") +
+  
+          annotate(geom = "text", 
+           x = as.Date("2020-03-01"), 
+           y = 390, 
+           label = "1 caso Confirmado", 
+           hjust = "center",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-03-01"), 
+           y = 	0,
+           xend = as.Date("2020-03-01"),
+           yend = 300,
+           colour="red",
+           linetype="dashed") +
+  
+  scale_x_date( breaks = "2 day", 
+                date_labels = "%b %d") +
+  
+  labs(title = "Chamadas não atendidas no SNS 24",
+     subtitle = Sys.time(), '%d %B %Y',
+     y = "Número",
+     x = "Data", 
+     fill = "", 
+     caption = "Fonte: Portal da transparencia") +
+  
+theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+p1
+
+ggsave( here::here("figures", paste(Sys.time(),"sns24_n_atentida.png")), 
+        dpi = "retina"
+        )
+
+```
+
+\pagebreak 
+
+```{r}
+
+p1 <- ggplot()+
+  
+      geom_line(data = sns3,                 
+               aes(x=date,               
+                   y = valorabsoluto),
+             color = "#287D8EFF",
+             alpha=0.9,
+             size=1 ) +
+  
+        annotate(geom = "text", 
+           x = as.Date("2020-02-01"), 
+           y = 7500, 
+           label = "Primeiro caso suspeito", 
+           hjust = "center",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-01-31"), 
+           y = 	5600,
+           xend = as.Date("2020-01-31"),
+           yend = 7000,
+           colour="red",
+           linetype="dashed") +
+  
+            annotate(geom = "text", 
+           x = as.Date("2020-03-01"), 
+           y = 7500, 
+           label = "1 caso Confirmado", 
+           hjust = "center",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-03-01"), 
+           y = 	5600,
+           xend = as.Date("2020-03-01"),
+           yend = 7000,
+           colour="red",
+           linetype="dashed") +
+  
+  scale_x_date( breaks = "2 day", 
+                date_labels = "%b %d") +
+  
+  labs(title = "Chamadas atendidas no SNS 24",
+     subtitle = Sys.time(), '%d %B %Y',
+     y = "Número",
+     x = "Data", 
+     fill = "", 
+     caption = "Fonte: Portal da transparencia") +
+  
+theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+p1
+
+ggsave( here::here("figures", paste(Sys.time(),"sns24_atentida.png")), 
+        dpi = "retina"
+        )
+
+```
+
+<center> <h2>FIM</h2> </center>
+
+```{r}
+# Libraries
+library(igraph)
+library(networkD3)
+# create a dataset:
+data <- data_frame(
+  from=c("A","A","A", "B", "A.3"),
+  to=c("A.1", "A.2", "A.3", "","A.3.1")
+)
+
+# Plot
+p <- simpleNetwork(data, height="100px", width="100px",        
+        Source = 1,                 # column number of source
+        Target = 2,                 # column number of target
+        linkDistance = 10,          # distance between node. Increase this value to have more space between nodes
+        charge = -900,                # numeric value indicating either the strength of the node repulsion (negative value) or attraction (positive value)
+        fontSize = 14,               # size of the node names
+        fontFamily = "serif",       # font og node names
+        linkColour = "#666",        # colour of edges, MUST be a common colour for the whole graph
+        nodeColour = "#69b3a2",     # colour of nodes, MUST be a common colour for the whole graph
+        opacity = 0.9,              # opacity of nodes. 0=transparent. 1=no transparency
+        zoom = T                    # Can you zoom on the figure?
+        )
+
+p
+
+tr <- make_tree(40, children = 3, mode = "undirected")
+
+plot(tr, vertex.size=10, vertex.label=NA) 
+```
+
