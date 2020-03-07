@@ -7,7 +7,7 @@ knit: (function(input_file, encoding) {
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 output: 
   flexdashboard::flex_dashboard:
-    theme: default
+    theme: lumen
     orientation: rows
 #    vertical_layout: scroll
     social: [ "twitter", "facebook", "menu" ]
@@ -15,7 +15,15 @@ output:
       - { title: "About", href: "https://github.com/aperaltasantos/covid_pt" }
 ---
 
-
+<style>                     
+.navbar {
+  background-color:white;
+  border-color:grey;
+}
+.navbar-brand {
+color:black!important;
+}
+</style>  
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
