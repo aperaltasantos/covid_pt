@@ -1,5 +1,5 @@
 ---
-title: "COVID-19 Portugal | `r format(Sys.time(), '%d %b %y - %H %p (%Z)')`"
+title: "COVID-19 PT | `r format(Sys.time(), '%d %b %y - %H %p (%Z)')`"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
@@ -17,7 +17,7 @@ output:
 
 <style>                     
 .navbar {
-  background-color:white;
+  background-color:"#fdbe85";
   border-color:grey;
 }
 .navbar-brand {
@@ -242,6 +242,24 @@ highchart() %>%
   )
 ```
 
+### Novos casos  
+
+```{r}
+
+highchart() %>% 
+  hc_chart(type = "area" , color = "#e6550d") %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Curva epidémica de COVID-19 em Portugal") %>% 
+  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
+  hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
+  hc_yAxis(title = list(text = "Novos casos confirmados")) %>% 
+  hc_add_series(data = covid_pt$Confirmados_var,
+                name = "Novos casos", color = "#e6550d") %>% 
+  hc_exporting(
+    enabled = TRUE
+  )
+```
+
 ```{r}
 u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?gid=1697035743&single=true&output=csv"
 tc <- getURL(u, ssl.verifypeer=FALSE)
@@ -375,7 +393,9 @@ hc <- highchart() %>%
   hc_chart(type = "area") %>% 
   hc_title(text = "Desempenho da linha SNS 24") %>% 
   hc_subtitle(text = "Fonte: Portal da tranparencia") %>% 
-  hc_xAxis(categories = format(sns1$date, "%b %d")) %>% 
+  hc_xAxis(categories = format(sns2$date, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Numero de chamadas")) %>% 
 #  hc_tooltip(pointFormat = "<span style=\"color:{series.color}\">{series.name}</span>:
 #             <b>{Atendidas: Atendidas}%</b> ({Abandonadas:,.0f} )<br/>",
@@ -389,8 +409,18 @@ hc <- highchart() %>%
        lineColor = "#ffffff"
        ))
      ) %>% 
-  hc_add_series(name = "Atendidas", data = sns2$Atendidas ) %>% 
-  hc_add_series(name = "Nao atendidas", data = sns2$Abandonadas)%>%
+    hc_series(
+    list(
+      name = "Atendidas",
+      data = sns2$Atendidas
+    ),
+    list(
+      name = "Nao atendidas",
+      data = sns2$Abandonadas
+    )
+  ) %>%
+#  hc_add_series(name = "Atendidas", data = sns2$Atendidas ) %>% 
+#  hc_add_series(name = "Nao atendidas", data = sns2$Abandonadas)%>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_exporting(
     enabled = TRUE
