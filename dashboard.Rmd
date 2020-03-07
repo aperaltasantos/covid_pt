@@ -9,7 +9,7 @@ output:
   flexdashboard::flex_dashboard:
     theme: default
     orientation: rows
-    vertical_layout: scroll
+#    vertical_layout: scroll
     social: [ "twitter", "facebook", "menu" ]
     navbar:
       - { title: "About", href: "https://github.com/aperaltasantos/covid_pt" }
