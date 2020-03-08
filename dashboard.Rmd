@@ -1,5 +1,5 @@
 ---
-title: "COVID-19 PT | `r format(Sys.time(), '%d %b %y - %H %p (%Z)')`"
+title: "COVID-19 PT |`r format(Sys.time(), '%d %b %y-%H %p(%Z)')`"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
@@ -216,7 +216,7 @@ highchart() %>%
   hc_title(text = "Casos suspeitos de COVID-19 em Portugal") %>% 
   hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
   hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
-  hc_yAxis(title = list(text = "Casos suspeitos")) %>% 
+  hc_yAxis(title = list(text = "Casos suspeitos (cumulativo)")) %>% 
   hc_add_series(data = covid_pt$Suspeitos,
                 name = "Suspeitos", color = "#fd8d3c") %>% 
   hc_exporting(
@@ -234,7 +234,7 @@ highchart() %>%
   hc_title(text = "Casos confirmados de COVID-19 em Portugal") %>% 
   hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
   hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
-  hc_yAxis(title = list(text = "Casos confirmados")) %>% 
+  hc_yAxis(title = list(text = "Casos confirmados (cumulativo)")) %>% 
   hc_add_series(data = covid_pt$Confirmados,
                 name = "Confirmados", color = "#e6550d") %>% 
   hc_exporting(
