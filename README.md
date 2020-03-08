@@ -16,7 +16,7 @@ Projecto colaborativo e independente de monitorização do COVID-19 em Portugal.
 - Guilherme Duarte
 - Bernardo Gomes
 - Nuno Rodrigues
-- Luis Alves
+- Luis Alves de Sousa
 - Duarte Brito
 
 ## Contacto
