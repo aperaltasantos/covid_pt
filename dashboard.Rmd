@@ -357,7 +357,7 @@ sns2_last<-sns2 %>%
 ```
 
 
-### Atendidas
+### Atendidas (últimas 24h)
 
 ```{r}
 rate <- sns2_last$Atendidas
@@ -366,7 +366,7 @@ gauge(rate, min = 0, max = 12000, symbol = '', gaugeSectors(
 ))
 ```
 
-### Não atendidas 
+### Não atendidas (últimas 24h)
 
 ```{r}
 rating <- sns2_last$Abandonadas
@@ -375,7 +375,7 @@ gauge(rating, min = 0, max = 5000, gaugeSectors(
 ))
 ```
 
-### Percent. não atendidas
+### Percent. não atendidas (últimas 24h)
 
 ```{r}
 cancellations <- sns2_last$percent
