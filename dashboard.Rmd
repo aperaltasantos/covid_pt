@@ -58,6 +58,7 @@ library(rjson)
 library(jsonlite)
 library(RCurl)
 library(highcharter)
+library(here)
 #library(taskscheduleR)
 #library(cronR)
 #install.packages('miniUI')
@@ -120,6 +121,54 @@ covid_pt <- mutate(covid_pt,
                    AS_sign=if_else(AS_var>=0,"+","-")
                    ) 
 ```
+
+```{r}
+covid_pt_english <- covid_pt %>%
+  select(
+    Data,
+#    AS,
+#    AS_var,
+    Suspeitos,
+    Suspeitos_var,
+    Confirmados,
+    Confirmados_var,
+    Internados,
+    Internados_var,
+    Intensivos,
+    Intensivos_var,
+    Mortes,
+    Mortes_var
+  ) %>%
+  rename(
+    date="Data",
+#    contact_tracing="AS",
+#    contact_tracing_new="AS_var",
+    lab_tested="Suspeitos",
+    lab_tested_new="Suspeitos_var",
+    confirmed="Confirmados",
+    confirmed_new="Confirmados_var",
+    inpatient="Internados",
+    inpatient_new="Internados_var",
+    ICU="Intensivos",
+    ICU_new="Intensivos_var",
+    death="Mortes",
+    death_new="Mortes_var"
+  ) 
+
+
+write_csv(
+  covid_pt_english,
+  here::here(
+    "datasets", 
+     paste(
+       format(Sys.time(), "%d_%b_%Y"),
+       "covid_prt.csv")
+  )
+)
+          
+
+```
+
 
 ```{r}
 covid_pt_l <- covid_pt %>%
