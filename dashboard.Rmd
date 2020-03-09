@@ -58,6 +58,11 @@ library(rjson)
 library(jsonlite)
 library(RCurl)
 library(highcharter)
+#library(taskscheduleR)
+#library(cronR)
+#install.packages('miniUI')
+#install.packages('shiny')
+#install.packages("taskscheduleR")
 ```
 
 ```{r}
