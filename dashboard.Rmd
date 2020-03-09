@@ -57,6 +57,7 @@ library(here)
 library(rjson)
 library(jsonlite)
 library(RCurl)
+library(highcharter)
 ```
 
 ```{r}
@@ -205,25 +206,6 @@ valueBox(paste(x1,"(",x2,x3,")"),
 Row {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
-### Suspeitos
-
-```{r}
-library(highcharter)
-
-highchart() %>% 
-  hc_chart(type = "column") %>% 
-  hc_add_theme(hc_theme_smpl()) %>% 
-  hc_title(text = "Casos suspeitos de COVID-19 em Portugal") %>% 
-  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
-  hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
-  hc_yAxis(title = list(text = "Casos suspeitos (cumulativo)")) %>% 
-  hc_add_series(data = covid_pt$Suspeitos,
-                name = "Suspeitos", color = "#fd8d3c") %>% 
-  hc_exporting(
-    enabled = TRUE
-  )
-```
-
 ### Confirmados  
 
 ```{r}
@@ -302,6 +284,24 @@ library("viridisLite")
 
 ```
 
+### Suspeitos
+
+```{r}
+
+
+highchart() %>% 
+  hc_chart(type = "column") %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Casos suspeitos de COVID-19 em Portugal") %>% 
+  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
+  hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
+  hc_yAxis(title = list(text = "Casos suspeitos (cumulativo)")) %>% 
+  hc_add_series(data = covid_pt$Suspeitos,
+                name = "Suspeitos", color = "#fd8d3c") %>% 
+  hc_exporting(
+    enabled = TRUE
+  )
+```
 
 Resposta SNS 24
 =====================================
@@ -392,10 +392,11 @@ Row
 hc <- highchart() %>% 
   hc_chart(type = "area") %>% 
   hc_title(text = "Desempenho da linha SNS 24") %>% 
-  hc_subtitle(text = "Fonte: Portal da tranparencia") %>% 
+  hc_subtitle(text = "Fonte: Portal da transparência") %>% 
   hc_xAxis(categories = format(sns2$date, "%b %d"),
            tickmarkPlacement = "on",
-           title = list(enabled = FALSE)) %>% 
+           title = list(enabled = FALSE),
+           reversed = TRUE) %>% 
   hc_yAxis(title = list(text = "Numero de chamadas")) %>% 
 #  hc_tooltip(pointFormat = "<span style=\"color:{series.color}\">{series.name}</span>:
 #             <b>{Atendidas: Atendidas}%</b> ({Abandonadas:,.0f} )<br/>",
