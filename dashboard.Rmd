@@ -52,7 +52,7 @@ library(googlesheets)
 require(RCurl)
 library(viridis)
 library(flexdashboard)
-library(epuRate)
+#library(epuRate)
 library(here)
 library(rjson)
 library(jsonlite)
@@ -283,7 +283,7 @@ highchart() %>%
 ```{r}
 
 highchart() %>% 
-  hc_chart(type = "area" , color = "#e6550d") %>% 
+  hc_chart(type = "column" , color = "#e6550d") %>% 
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Curva epidémica de COVID-19 em Portugal") %>% 
   hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
@@ -330,7 +330,7 @@ library("viridisLite")
   hc_title(text = "Mapa dos casos confirmados por distrito") %>% 
   hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores")   %>%
   hc_legend(layout = "vertical", verticalAlign = "bottom",
-            align = "right", valueDecimals = 0)  %>%
+            align = "right", valueDecimals = 0, floating = TRUE)  %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_exporting(
     enabled = TRUE
@@ -483,6 +483,9 @@ hc <- highchart() %>%
        
 hc
 ```
+
+
+
 
 
 
