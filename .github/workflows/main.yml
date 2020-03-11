@@ -12,6 +12,8 @@ jobs:
     container: wkusnierczyk/rmarkdown:latest
     steps:
     - uses: actions/checkout@master
+    - name: install-forcats
+      run: Rscript -e 'install.packages("forcats")'
     - name: install-flexdashboard
       run: Rscript -e 'install.packages("flexdashboard")'
     - name: install-lubridate
