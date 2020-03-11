@@ -328,7 +328,7 @@ library("viridisLite")
 #  hc_colorAxis(dataClasses = color_classes(c(seq(0, 10, by = 2), 50))) %>%
   hc_colorAxis(stops = color_stops(10, rev(inferno(20)))) %>%
   hc_title(text = "Mapa dos casos confirmados por distrito") %>% 
-  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores")   %>%
+  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores \nA Nota: DGS faz o reporte por regiao de saúde, o mapa pode não representar a realidade")   %>%
   hc_legend(layout = "vertical", verticalAlign = "bottom",
             align = "right", valueDecimals = 0, floating = TRUE)  %>%
   hc_add_theme(hc_theme_smpl()) %>% 
