@@ -18,6 +18,7 @@ jobs:
     - name: Install rmarkdown
       run: |
         Rscript -e 'install.packages("rmarkdown")'
+        Rscript -e 'install.packages("flexdashboard")'
     - name: run-script
       run: |
         Rscript -e "rmarkdown::render('dashboard.Rmd')"
