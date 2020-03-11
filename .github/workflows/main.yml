@@ -30,7 +30,7 @@ jobs:
         Rscript -e 'install.packages("RCurl")'
         Rscript -e 'install.packages("highcharter")'
         Rscript -e 'install.packages("here")'
-        Rscript -e 'install.packages("viridsLite")'
+        Rscript -e 'install.packages("viridisLite")'
 
     - name: run-script
       run: |
