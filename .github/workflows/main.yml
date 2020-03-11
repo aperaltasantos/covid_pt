@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: wkusnierczyk/rmarkdown:latest
+    container: colobas/covid19-rmarkdown:latest
     steps:
     - uses: actions/checkout@master
     - name: install-forcats
