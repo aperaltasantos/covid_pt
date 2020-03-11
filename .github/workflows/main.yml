@@ -1,6 +1,8 @@
 name: update-site
 
 on:
+  repository_dispatch:
+    types: test-me
   schedule:
   - cron:  '0 11 * * *'
 
