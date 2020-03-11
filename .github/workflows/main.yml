@@ -11,27 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     container: colobas/covid19-rmarkdown:latest
     steps:
-    - uses: actions/checkout@master
-    - name: install-forcats
-      run: Rscript -e 'install.packages("forcats")'
-    - name: install-flexdashboard
-      run: Rscript -e 'install.packages("flexdashboard")'
-    - name: install-lubridate
-      run: Rscript -e 'install.packages("lubridate")'
-    - name: install-viridis
-      run: Rscript -e 'install.packages("viridis")'
-    - name: install-here
-      run: Rscript -e 'install.packages("here")'
-    - name: install-rjson
-      run: Rscript -e 'install.packages("rjson")'
-    - name: install-jsonlite
-      run: Rscript -e 'install.packages("jsonlite")'
-    - name: install-RCurl
-      run: Rscript -e 'install.packages("RCurl")'
-    - name: install-highcharter
-      run: Rscript -e 'install.packages("highcharter")'
-    - name: install-viridisLite
-      run: Rscript -e 'install.packages("viridisLite")'
     - name: run-script
       run: |
         Rscript -e "rmarkdown::render('dashboard.Rmd')"
