@@ -15,23 +15,30 @@ jobs:
       with:
         r-version: '3.5.3' # The R version to download (if necessary) and use.
     - uses: r-lib/actions/setup-pandoc@v1
-    - name: Install rmarkdown
-      run: |
-        Rscript -e 'install.packages("rmarkdown")'
-        Rscript -e 'install.packages("flexdashboard")'
-        Rscript -e 'install.packages("tidyverse")'
-        Rscript -e 'install.packages("lubridate")'
-        Rscript -e 'install.packages("googlesheets")'
-        Rscript -e 'install.packages("viridis")'
-        Rscript -e 'install.packages("flexdashboard")'
-        Rscript -e 'install.packages("here")'
-        Rscript -e 'install.packages("rjson")'
-        Rscript -e 'install.packages("jsonlite")'
-        Rscript -e 'install.packages("RCurl")'
-        Rscript -e 'install.packages("highcharter")'
-        Rscript -e 'install.packages("here")'
-        Rscript -e 'install.packages("viridisLite")'
-
+    - name: install-rmarkdown
+      run: Rscript -e 'install.packages("rmarkdown")'
+    - name: install-flexdashboard
+      run: Rscript -e 'install.packages("flexdashboard")'
+    - name: install-tidyverse
+      run: Rscript -e 'install.packages("tidyverse")'
+    - name: install-lubridate
+      run: Rscript -e 'install.packages("lubridate")'
+    - name: install-googlesheets
+      run: Rscript -e 'install.packages("googlesheets")'
+    - name: install-viridis
+      run: Rscript -e 'install.packages("viridis")'
+    - name: install-here
+      run: Rscript -e 'install.packages("here")'
+    - name: install-rjson
+      run: Rscript -e 'install.packages("rjson")'
+    - name: install-jsonlite
+      run: Rscript -e 'install.packages("jsonlite")'
+    - name: install-RCurl
+      run: Rscript -e 'install.packages("RCurl")'
+    - name: install-highcharter
+      run: Rscript -e 'install.packages("highcharter")'
+    - name: install-viridisLite
+      run: Rscript -e 'install.packages("viridisLite")'
     - name: run-script
       run: |
         Rscript -e "rmarkdown::render('dashboard.Rmd')"
