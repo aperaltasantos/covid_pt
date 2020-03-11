@@ -19,6 +19,19 @@ jobs:
       run: |
         Rscript -e 'install.packages("rmarkdown")'
         Rscript -e 'install.packages("flexdashboard")'
+        Rscript -e 'install.packages("tidyverse")'
+        Rscript -e 'install.packages("lubridate")'
+        Rscript -e 'install.packages("googlesheets")'
+        Rscript -e 'install.packages("viridis")'
+        Rscript -e 'install.packages("flexdashboard")'
+        Rscript -e 'install.packages("here")'
+        Rscript -e 'install.packages("rjson")'
+        Rscript -e 'install.packages("jsonlite")'
+        Rscript -e 'install.packages("RCurl")'
+        Rscript -e 'install.packages("highcharter")'
+        Rscript -e 'install.packages("here")'
+        Rscript -e 'install.packages("viridsLite")'
+
     - name: run-script
       run: |
         Rscript -e "rmarkdown::render('dashboard.Rmd')"
