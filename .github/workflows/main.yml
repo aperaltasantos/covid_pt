@@ -19,8 +19,14 @@ jobs:
       run: Rscript -e 'install.packages("rmarkdown")'
     - name: install-flexdashboard
       run: Rscript -e 'install.packages("flexdashboard")'
-    - name: install-tidyverse
-      run: Rscript -e 'install.packages("tidyverse")'
+    - name: install-readr
+      run: Rscript -e 'install.packages("readr")'
+    - name: install-dplyr
+      run: Rscript -e 'install.packages("dplyr")'
+    - name: install-ggplot2
+      run: Rscript -e 'install.packages("ggplot2")'
+    - name: install-forcats
+      run: Rscript -e 'install.packages("forcats")'
     - name: install-lubridate
       run: Rscript -e 'install.packages("lubridate")'
     - name: install-googlesheets
