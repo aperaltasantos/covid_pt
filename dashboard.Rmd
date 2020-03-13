@@ -393,7 +393,7 @@ sns2 <- sns1 %>%
      date, indicador, valorabsoluto, year, week
    ) %>%
   filter(
-    year==2020,
+#    year==2020,
     indicador=="Chamadas Abandonadas após 15s" | indicador=="Chamadas Atendidas"
   ) 
 
