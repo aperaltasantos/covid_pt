@@ -72,7 +72,6 @@ library(here)
 ```
 
 ```{r}
-
 u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?output=csv"
 tc <- getURL(u, ssl.verifypeer=FALSE)
 covid_pt <- read.csv(textConnection(tc))
@@ -113,6 +112,12 @@ covid_pt <- mutate(covid_pt,
                    Intensivos_var=Intensivos-Intensivos_lag1,
                    Intensivos_sign=if_else(Intensivos_var>=0,"+","-"),
                    
+                   Recuperados_lag1 = lag(x = Recuperados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Recuperados_var=Recuperados-Recuperados_lag1,
+                   Recuperados_sign=if_else(Recuperados_var>=0,"+","-"),
+                   
                    Mortes_lag1 = lag(x = Mortes, 
                                      n = 1, 
                                      order_by = Data),
@@ -141,6 +146,8 @@ covid_pt_english <- covid_pt %>%
     Internados_var,
     Intensivos,
     Intensivos_var,
+    Recuperados,
+    Recuperados_var,
     Mortes,
     Mortes_var
   ) %>%
@@ -154,6 +161,8 @@ covid_pt_english <- covid_pt %>%
     confirmed_new="Confirmados_var",
     inpatient="Internados",
     inpatient_new="Internados_var",
+    recovered="Recuperados",
+    recovered_new="Recuperados_var",
     ICU="Intensivos",
     ICU_new="Intensivos_var",
     death="Mortes",
@@ -241,14 +250,14 @@ valueBox(paste(x1,"(",x2,x3,")"),
          color="#a63603")
 ```
 
-### Intensivos
+### Recuperados
 ```{r}
-x1 <- covid_pt_last$Intensivos
-x2<- covid_pt_last$Intensivos_sign
-x3<- covid_pt_last$Intensivos_var
+x1 <- covid_pt_last$Recuperados
+x2<- covid_pt_last$Recuperados_sign
+x3<- covid_pt_last$Recuperados_var
 valueBox(paste(x1,"(",x2,x3,")"), 
-         icon = "fa-procedures",
-         color="#7f2704")
+         icon = "fas fa-walking",
+         color="#a1d99b")
 
 ```
 
@@ -265,6 +274,14 @@ valueBox(paste(x1,"(",x2,x3,")"),
 Row {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
+```{r}
+covid_pt1<- covid_pt %>%
+  filter(
+    Data>as.Date("2020-03-01")
+  )
+```
+
+
 ### Confirmados  
 
 ```{r}
@@ -274,9 +291,9 @@ highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Casos confirmados de COVID-19 em Portugal") %>% 
   hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
-  hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
+  hc_xAxis(categories = format(covid_pt1$Data, "%b %d")) %>% 
   hc_yAxis(title = list(text = "Casos confirmados (cumulativo)")) %>% 
-  hc_add_series(data = covid_pt$Confirmados,
+  hc_add_series(data = covid_pt1$Confirmados,
                 name = "Confirmados", color = "#e6550d") %>% 
   hc_exporting(
     enabled = TRUE
@@ -292,9 +309,9 @@ highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Curva epidémica de COVID-19 em Portugal") %>% 
   hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
-  hc_xAxis(categories = format(covid_pt$Data, "%b %d")) %>% 
+  hc_xAxis(categories = format(covid_pt1$Data, "%b %d")) %>% 
   hc_yAxis(title = list(text = "Novos casos confirmados")) %>% 
-  hc_add_series(data = covid_pt$Confirmados_var,
+  hc_add_series(data = covid_pt1$Confirmados_var,
                 name = "Novos casos", color = "#e6550d") %>% 
   hc_exporting(
     enabled = TRUE
@@ -312,12 +329,23 @@ map_pt_cases <- read.csv(textConnection(tc))
 library(highcharter)
 mapdata <- get_data_from_map(download_map_data("countries/pt/pt-all"))
 
+#mapdata<- mapdata %>%
+#  rename(hc_a2="hc-a2") %>%
+#  dplyr::mutate(hc_a2 = recode(hc_a2, 
+#     "BE" = "EV"))
+
+#map_pt_cases<- map_pt_cases %>%
+#  rename(hc_key="hc.key") %>%
+#  dplyr::mutate(hc_key = recode(hc_key, 
+#     "BE" = "EV"))
+
 ```
 
 ### Mapa confirmados 
 
 ```{r}
 library("viridisLite")
+
 
     hcmap("countries/pt/pt-all", 
       data = map_pt_cases, 
@@ -341,6 +369,28 @@ library("viridisLite")
     enabled = TRUE
   )
 
+```
+
+### Recuperados
+
+```{r}
+covid_pt2<- covid_pt %>%
+  filter(
+    Data>as.Date("2020-03-10")
+  )
+
+highchart() %>% 
+  hc_chart(type = "column") %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Casos recuperados de COVID-19 em Portugal") %>% 
+  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores") %>% 
+  hc_xAxis(categories = format(covid_pt2$Data, "%b %d")) %>% 
+  hc_yAxis(title = list(text = "Casos recuperados (cumulativo)")) %>% 
+  hc_add_series(data = covid_pt2$Recuperados,
+                name = "Recuperados", color = "#a1d99b") %>% 
+  hc_exporting(
+    enabled = TRUE
+  )
 ```
 
 ### Suspeitos
@@ -405,6 +455,9 @@ sns2 <- sns1 %>%
 sns2 <- sns2 %>%
   pivot_wider(names_from = indicador, values_from = valorabsoluto)
 
+sns2<-sns2 %>% 
+  filter(year==2020)
+
 sns2 <- sns2 %>%
   rename(Abandonadas="Chamadas Abandonadas após 15s",
          Atendidas="Chamadas Atendidas" ) %>%
@@ -448,6 +501,8 @@ Row
 -----------------------------------------------------------------------
 
 ```{r}
+
+
 hc <- highchart() %>% 
   hc_chart(type = "area") %>% 
   hc_title(text = "Desempenho da linha SNS 24") %>% 
