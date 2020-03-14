@@ -46,7 +46,12 @@ options(scipen=4)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
-library(tidyverse)
+#library(tidyverse)
+library(tidyr)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(forcats)
 library(lubridate)
 library(googlesheets)
 require(RCurl)
