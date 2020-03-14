@@ -208,7 +208,7 @@ Row
 ```{r}
 x1 <- covid_pt_last$AS
 x2<- covid_pt_last$AS_sign
-x3<- covid_pt_last$AS_var
+x3<- abs(covid_pt_last$AS_var)
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fa-search",
          color="#fdbe85")
@@ -501,7 +501,6 @@ Row
 
 ```{r}
 
-
 hc <- highchart() %>% 
   hc_chart(type = "area") %>% 
   hc_title(text = "Desempenho da linha SNS 24") %>% 
@@ -514,6 +513,17 @@ hc <- highchart() %>%
 #  hc_tooltip(pointFormat = "<span style=\"color:{series.color}\">{series.name}</span>:
 #             <b>{Atendidas: Atendidas}%</b> ({Abandonadas:,.0f} )<br/>",
 #             shared = TRUE) %>% 
+  hc_tooltip(
+    formatter = highcharter::JS(
+      paste0("function () {
+            return this.points.reduce(function (s, point) {
+                return s + '<br/>' + point.series.name + ': ' +
+                    point.y;
+            }, '<b>' + this.x + '</b>');
+        }")
+    ) ,
+    shared = TRUE
+  ) %>% 
   hc_plotOptions(area = list(
      stacking = "stacked",
      lineColor = "#ffffff",
@@ -542,9 +552,5 @@ hc <- highchart() %>%
        
 hc
 ```
-
-
-
-
 
 
