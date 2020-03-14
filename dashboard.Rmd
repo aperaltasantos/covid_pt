@@ -338,7 +338,6 @@ mapdata <- get_data_from_map(download_map_data("countries/pt/pt-all"))
 #  rename(hc_key="hc.key") %>%
 #  dplyr::mutate(hc_key = recode(hc_key, 
 #     "BE" = "EV"))
-
 ```
 
 ### Mapa confirmados 
