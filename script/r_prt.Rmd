@@ -1,0 +1,187 @@
+---
+title: "r_covid"
+author: "Peralta santos"
+date: "3/13/2020"
+output: html_document
+---
+
+
+```{r}
+
+library(EpiEstim)
+library(tidyr)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(forcats)
+library(lubridate)
+library(googlesheets)
+require(RCurl)
+library(viridis)
+library(flexdashboard)
+#library(epuRate)
+library(here)
+library(rjson)
+library(jsonlite)
+library(RCurl)
+library(highcharter)
+library(here)
+```
+
+```{r}
+u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?output=csv"
+tc <- getURL(u, ssl.verifypeer=FALSE)
+covid_pt <- read.csv(textConnection(tc))
+```
+
+
+```{r}
+covid_pt$Data <- as.Date(covid_pt$Data,
+                         "%d-%m-%Y"
+                         )
+
+covid_pt<-covid_pt  %>%
+  mutate(epiweek = epiweek(Data)
+  )
+
+covid_pt <- mutate(covid_pt, 
+                   Suspeitos_lag = lag(x = Suspeitos, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Suspeitos_var=Suspeitos-Suspeitos_lag,
+                   Suspeitos_sign=if_else(Suspeitos_var>=0,"+","-"),
+                   
+                   Confirmados_lag = lag(x = Confirmados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Confirmados_var=Confirmados-Confirmados_lag,
+                   Confirmados_sign=if_else(Confirmados_var>=0,"+","-"),
+                   
+                   Internados_lag1 = lag(x = Internados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Internados_var=Internados-Internados_lag1,
+                   Internados_sign=if_else(Internados_var>=0,"+","-"),
+                   
+                    Intensivos_lag1 = lag(x = Intensivos, 
+                                        n = 1, 
+                                        order_by = Data),
+                   Intensivos_var=Intensivos-Intensivos_lag1,
+                   Intensivos_sign=if_else(Intensivos_var>=0,"+","-"),
+                   
+                   Mortes_lag1 = lag(x = Mortes, 
+                                     n = 1, 
+                                     order_by = Data),
+                   Mortes_var=Mortes-Mortes_lag1,
+                   Mortes_sign=if_else(Mortes_var>=0,"+","-"),
+                   
+                   AS_lag1 = lag(x = AS, 
+                                        n = 1, 
+                                        order_by = Data),
+                   AS_var=AS-AS_lag1,
+                   AS_sign=if_else(AS_var>=0,"+","-")
+                   ) 
+
+covid_r<-covid_pt  %>%
+  group_by(epiweek) %>%
+  summarise(
+    incidence=sum(Confirmados_var)
+  ) %>%
+  filter(
+    epiweek>6
+  )
+
+covid_r<-covid_pt  %>%
+  select(
+    Data,Confirmados_var
+  )  %>%
+  filter(
+    Data>as.Date("2020-02-28")
+  ) %>%
+  dplyr::mutate(t_start = dplyr::row_number())
+
+```
+
+
+```{r}
+## Calculate Effective R
+## Authors A. Peralta-santos 
+## Based on https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html
+
+###Methods
+
+#Time-varying effective reproduction estimates were made with a 7-day sliding window using EpiEstim [4,5] adjusted for imported cases and assuming an uncertain serial interval with a mean of 4.7 days (95% CrI: 3.7, 6.0) and a standard deviation of 2.9 days (95% CrI: 1.9, 4.9) [6].
+#Time-varying estimates of the doubling time were made with a 7-day sliding window by iteratively fitting an exponential regression model.
+
+
+res_parametric_si <- estimate_R(covid_r$Confirmados_var, 
+                                method="parametric_si",
+                                config = make_config(list(
+                                  mean_si = 4.7, 
+                                  std_si = 2.9)))
+
+
+
+r_prt<- as.data.frame( res_parametric_si$R)
+
+r_prt<- left_join(covid_r, r_prt, by="t_start")
+
+r_prt<- r_prt %>% 
+  rename(r_efect="Mean(R)",
+         r_low="Quantile.0.025(R)",
+         r_high="Quantile.0.975(R)")
+
+```
+
+
+```{r}
+p1 <- ggplot()+
+  
+      geom_line(data = r_prt,                 
+               aes(x=Data,               
+                   y = r_efect,
+                   ),
+             alpha=0.7,
+             size=1 ) +
+  
+    geom_hline(yintercept=1, 
+               linetype="dashed", 
+               color = "black") +
+  
+      geom_hline(yintercept=0, 
+               color = "black") +
+  
+  geom_ribbon(data = r_prt, 
+              aes(ymin = r_low, 
+                  ymax = r_high,
+                  x=Data
+                  ), 
+               alpha=0.5,
+              fill = "grey70") +
+  
+  scale_x_date( breaks = "2 day", 
+                date_labels = "%b %d") +
+  
+   
+  labs(title = "COVID-19 Effective reproduction",
+        subtitle = "Portugal",
+     y = "Effective reproduction n",
+     x = "", 
+     caption = "Fonte: Dados da DGS |Modelo dos autores") +
+  
+theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+  #      panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom") 
+p1
+```
+
+
+

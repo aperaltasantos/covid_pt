@@ -18,6 +18,7 @@ Projecto colaborativo e independente de monitorização do COVID-19 em Portugal.
 - Nuno Rodrigues
 - Luis Alves de Sousa
 - Duarte Brito
+- Guilerme Pires
 
 ## Contacto
 - [Email] andre.peralta.santos@gmail.com

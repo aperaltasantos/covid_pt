@@ -1,0 +1,204 @@
+---
+title: "sns24"
+author: "Peralta santos"
+date: "3/11/2020"
+output: html_document
+---
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Base URL path
+base_url = "http://transparencia.sns.gov.pt/api/records/1.0/search/?dataset=atividade-operacional-sns-24&rows=-1&sort=periodo&facet=periodo&facet=indicador"
+ # encode the URL with characters for each space.
+base_url <- URLencode(base_url)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+data_df <- fromJSON(getURL(base_url))
+sns1 <- as.data.frame(data_df$records)
+
+# Convert JSON to data frame
+sns1 <- fromJSON(getURL(base_url))
+sns1 <- as.data.frame(sns1$records)
+sns1 <- as.data.frame(sns1$fields)
+```
+
+```{r}
+# Transform to date with Libridate 
+sns1$date <- as.Date(sns1$periodo, "%Y-%m-%d")
+sns1$year <- as.factor(format(sns1$date,'%Y'))
+sns1$week <- lubridate::isoweek(sns1$date)
+
+sns2 <- sns1 %>%
+   select(
+     date, indicador, valorabsoluto, year, week
+   ) %>%
+  filter(
+    year==2020,
+    indicador=="Chamadas Abandonadas após 15s" | indicador=="Chamadas Atendidas"
+  ) 
+
+sns2 <- sns2 %>%
+  pivot_wider(names_from = indicador, values_from = valorabsoluto)
+
+sns2 <- sns2 %>%
+  rename(Abandonadas="Chamadas Abandonadas após 15s",
+         Atendidas="Chamadas Atendidas" ) %>%
+  mutate(percent=(Abandonadas/(Abandonadas+Atendidas))*100) %>% 
+  mutate(percent = round(percent, 1))
+           
+sns2_lancet<-sns2 %>% 
+  filter(date>as.Date("2020-01-25"))
+
+sns2_lancet<-sns2_lancet%>%
+  pivot_longer(
+   cols = "Atendidas":"Abandonadas",
+   names_to = "typo",
+   values_to = "value",
+   values_drop_na = TRUE
+ )  %>% 
+  filter(date<as.Date("2020-03-10"))
+
+```
+
+```{r}
+
+p1 <- ggplot()+
+  
+      geom_area(data = sns2_lancet,                 
+               aes(x=date,               
+                   y = value,
+                   fill=typo
+                   ),
+             alpha=0.7,
+             size=1 ) +
+  
+  scale_y_continuous(breaks=seq(0,25000,5000))+
+  
+        annotate(geom = "text", 
+           x = as.Date("2020-01-31"), 
+           y = 15700, 
+           label = "First suspect", 
+           hjust = "center",
+           size=3) +
+  
+  annotate(geom = "segment",
+           x = as.Date("2020-01-31"), 
+           y = 	15000,
+           xend = as.Date("2020-01-31"),
+           arrow = arrow(length = unit(0.03, "npc")),
+           yend = 5671,
+           colour="red",
+          # linetype="dashed"
+           ) +
+  
+          annotate(geom = "text", 
+           x = as.Date("2020-03-01"), 
+           y = 15700, 
+           label = "First case", 
+           hjust = "center",
+           size=3) +
+  
+    annotate(geom = "segment",
+           x = as.Date("2020-03-01"), 
+           y = 	15000,
+           xend = as.Date("2020-03-01"),
+           arrow = arrow(length = unit(0.03, "npc")),
+           yend = 7475,
+           colour="red",
+          # linetype="dashed"
+           ) +
+  
+            annotate(geom = "text", 
+           x = as.Date("2020-03-10"), 
+           y = 5300, 
+           label = "11K", 
+           hjust = "center",
+           size=3) +
+  
+            annotate(geom = "text", 
+           x = as.Date("2020-03-10"), 
+           y = 15300, 
+           label = "15K", 
+           hjust = "center",
+           size=3) +
+  
+  scale_x_date( breaks = "2 day", 
+                date_labels = "%b %d") +
+  
+  labs(title = "Telephone triage peformance",
+     subtitle = "Portugal",
+     y = "Number of calls",
+     x = "", 
+     fill = "", 
+     caption = "Source: Ministry of Health database") +
+  
+    scale_fill_manual (
+          values = c("#01665e", "#80cdc1"),
+                      labels = c("  Missed    ", 
+                                 "  Answered  "),
+                      guide = guide_legend(
+            direction = "horizontal",
+            keyheight = unit(2, units = "mm"),
+            keywidth = unit(8, units = "mm"),
+            title.position = 'top',
+            title.hjust = 0.5,
+            label.hjust = 1,
+            nrow = 1,
+            byrow = T,
+            reverse = F,
+            label.position = "bottom"
+          )
+                       ) +
+  
+theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+  #      panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(face = "bold", size = 8, color = "black"),
+        axis.title = element_text(size = 10),
+        plot.title = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom") 
+p1
+
+ggsave( here::here("figures", paste(Sys.time(),"sns24_n_atentida.png")), 
+        dpi = "retina"
+        )
+
+```
+
+```{r}
+# Library
+library(tidyverse)
+library(viridis)
+library(hrbrthemes)
+
+sns3 <- sns2 %>%
+  mutate (
+    mes=month(sns2$date) 
+          ) 
+
+sns4 <- sns3 %>%
+  filter(
+    date<as.Date("2020-02-01")
+  )  %>%
+    filter(
+    date>as.Date("2018-01-01")
+  )  %>%
+    filter(
+    mes %in% c("10", "11", "12", "1", "2", "3")
+  )  %>%
+  summarise(
+    mean_1=mean(Atendidas),
+    mean_2=mean(percent)
+  )
+  
+  sns$month <- month(sns$date) 
+
+```
+
