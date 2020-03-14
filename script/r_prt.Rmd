@@ -28,6 +28,8 @@ library(jsonlite)
 library(RCurl)
 library(highcharter)
 library(here)
+library(incidence)
+library(purrr)
 ```
 
 ```{r}
@@ -123,75 +125,93 @@ res_parametric_si <- estimate_R(covid_r$Confirmados_var,
                                   mean_si = 4.7, 
                                   std_si = 2.9)))
 
-r_prt<- as.data.frame( res_parametric_si$R)
+r_prt <- as.data.frame( res_parametric_si$R)
 
-r_prt<- left_join(covid_r, r_prt, by="t_start")
+r_prt <- left_join(covid_r, r_prt, by="t_start")
 
-r_prt<- r_prt %>% 
-  rename(
-      r_efect = "Mean(R)",
-      r_low = "Quantile.0.025(R)",
-      r_high = "Quantile.0.975(R)"
-      )
+r_prt <- 
+    r_prt %>% 
+    rename(
+        r_efect = "Mean(R)",
+        r_low = "Quantile.0.025(R)",
+        r_high = "Quantile.0.975(R)"
+    )
 
 ```
 
 
 ```{r}
-p1 <- ggplot()+
+p1 <- 
+    ggplot() +
   
-      geom_line(data = r_prt,                 
-               aes(x=Data,               
-                   y = r_efect
-                   ),
-             alpha=0.7,
-             size=1 ) +
+    geom_line(
+        data = r_prt,                 
+        aes(
+            x = Data,               
+            y = r_efect
+        ),
+        alpha = 0.7,
+        size = 1
+        ) +
   
-    geom_hline(yintercept=1, 
-               linetype="dashed", 
-               color = "black") +
+    geom_hline(
+        yintercept=1, 
+        linetype="dashed", 
+        color = "black"
+    ) +
   
-      geom_hline(yintercept=0, 
-               color = "black") +
+    geom_hline(
+        yintercept=0, 
+        color = "black"
+    ) +
   
-  geom_ribbon(data = r_prt, 
-              aes(ymin = r_low, 
-                  ymax = r_high,
-                  x=Data
-                  ), 
-               alpha=0.5,
-              fill = "grey70") +
+    geom_ribbon(
+        data = r_prt, 
+        aes(
+            ymin = r_low, 
+            ymax = r_high,
+            x = Data
+        ), 
+        alpha=0.5,
+        fill = "grey70"
+    ) +
   
-  scale_x_date( breaks = "2 day", 
-                date_labels = "%b %d") +
+  scale_x_date(
+      breaks = "2 day", 
+      date_labels = "%b %d"
+      ) +
   
-   
-  labs(title = "COVID-19 Effective reproduction",
-        subtitle = "Portugal",
-     y = "Effective reproduction n",
-     x = "", 
-     caption = "Fonte: Dados da DGS |Modelo dos autores") +
+  labs(
+      title = "COVID-19 Effective reproduction",
+      subtitle = "Portugal",
+      y = "Effective reproduction n",
+      x = "", 
+      caption = "Fonte: Dados da DGS |Modelo dos autores"
+      ) +
   
-theme_minimal() +
-  theme(
-    panel.grid.minor = element_blank(),
-  #      panel.grid.major.y = element_blank(),
+    theme_minimal() +
+    
+    theme(
+        panel.grid.minor = element_blank(),
+        # panel.grid.major.y = element_blank(),
         panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank(),
         axis.text = element_text(face = "bold", size = 8, color = "black"),
         axis.title = element_text(size = 10),
         plot.title = element_text(face = "bold", size = 12),
         axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "bottom") 
+        legend.position = "bottom"
+        )
+
 p1
 ```
 
 
 ```{r estim-Re-uncertain-si}
-### R_e calculation - Parametric SI method for 
+### R_e calculation - Uncertainty method
 ### Serial Interval
 ### -- mean 4.7 (95% CrI: 3.7, 6.0)
-### -- sd 2.9 (95% CrI: , )
+### -- sd 2.9 (95% CrI: 1.9, 4.9)
 sens_configs <- 
     make_config(
         list(
@@ -200,7 +220,7 @@ sens_configs <-
             std_si = 2.9, std_std_si = 0.5,
             min_std_si = 1.9, max_std_si = 4.9,
             n1 = 1000,
-            n2 = 1000,
+            n2 = 100,
             seed = 123456789
         )
     )
@@ -212,20 +232,125 @@ Re_nonparam_si <-
         config = sens_configs
         )
 
+### inspect R_e estimate
 plot(Re_nonparam_si, legend = FALSE)
 
-## Sample R from the first weekly window
-sample_window <- 1L
-R_sample <- sample_posterior_R(Re_nonparam_si, n = 1000, window = sample_window)
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Re_nonparam_si$R$t_start))
+
+posterior_R_e <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Re_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Re_nonparam_si$R$t_start[x],
+                    date_point = covid_r[covid_r$t_start == Re_nonparam_si$R$t_start[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+plot_posterior_R_e <- 
+    ggplot(data = posterior_R_e, mapping = aes(x = date_point, y = R_e_median)) + 
+    geom_line(alpha = 0.3, size = 1.2) + 
+    geom_ribbon(mapping = aes(ymin = R_e_q0025, ymax = R_e_q0975), alpha = 0.1) + 
+    geom_smooth(se = FALSE) + 
+    scale_x_date(date_breaks = "1 day") + 
+    scale_y_continuous(
+        breaks = 0:ceiling(max(posterior_R_e$R_e_q0975)),
+        limits = c(0, NA)
+        ) + 
+    geom_hline(yintercept = 1) + 
+    theme_classic()
+
+plot_posterior_R_e
 
 ```
 
 
-```{r lambda-overall-infectivity}
+```{r estim-Re-uncertain-si-imported}
+### the model can account for imported cases at the beginning of the outbreak
+### perhaps consider the first 2 ??? or 4 on the first two days
+### if so, it will most likely decrease the initial R_e but increase it afterwards due to undiagnosed community transmission
 
 ```
 
 
+```{r log-linear-growth}
+covid_r_inc <- 
+    rep(
+        x = unlist(covid_r$Data), 
+        times = unlist(covid_r$Confirmados_var)
+        ) %>% 
+    incidence(
+        dates = .,
+        interval = "1 day",
+        standard = TRUE,
+        first_date = min(covid_r$Data),
+        last_date = max(covid_r$Data)
+        )
+
+### find peak for adjustment of trend on model by the split argument    
+covid_r_inc_peak <- find_peak(covid_r_inc)
+
+### fit log-linear model
+### fits two exponential models to incidence data, 
+### of the form: log(y) = r * t + b , where
+### 'y' is the incidence,
+### 't' is time (in days)
+### 'r' is the growth rate
+### 'b' is the origin
+### function fit will fit one model by default, 
+### but will fit two models on either side of a splitting date 
+### (typically the peak of the epidemic) if the argument split is provided
+covid_r_inc_model <- 
+    fit(
+        x = covid_r_inc,
+        # split = covid_r_inc_peak,
+        NULL
+    )
+
+# check object entirely
+covid_r_inc_model
+
+# (daily growth rate)
+covid_r_inc_model$info$r
+covid_r_inc_model$info$r.conf
+
+# (doubling time in days)
+covid_r_inc_model$info$doubling
+covid_r_inc_model$info$doubling.conf
+
+# incidence predictions (fitted vs observed data)
+plot(covid_r_inc, fit = covid_r_inc_model)
+```
+
+
 ```{r lambda-overall-infectivity}
+### computes the overall infectivity (lambda) due to previously infected individuals
+### λ_t = ∑_{k=1}^{t-1}I_{t-k}w_k 
+lambda_covid_pt <- 
+    overall_infectivity(
+        incid = data.frame(I = covid_r_inc$counts), 
+        si_distr = discr_si(k = c(100, 1:100), mu = 4.7, sigma = 2.9)
+        )
+
+plot(lambda_covid_pt)
 
 ```
