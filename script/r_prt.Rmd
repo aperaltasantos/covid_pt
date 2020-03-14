@@ -3,6 +3,8 @@ title: "r_covid"
 author: "Peralta santos"
 date: "3/13/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -104,7 +106,7 @@ covid_r<-covid_pt  %>%
 
 
 ```{r}
-## Calculate Effective R
+## Calculate Effective R (R_e or R_t)
 ## Authors A. Peralta-santos 
 ## Based on https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html
 
@@ -113,23 +115,24 @@ covid_r<-covid_pt  %>%
 #Time-varying effective reproduction estimates were made with a 7-day sliding window using EpiEstim [4,5] adjusted for imported cases and assuming an uncertain serial interval with a mean of 4.7 days (95% CrI: 3.7, 6.0) and a standard deviation of 2.9 days (95% CrI: 1.9, 4.9) [6].
 #Time-varying estimates of the doubling time were made with a 7-day sliding window by iteratively fitting an exponential regression model.
 
-
+### R_e calculation - Parametric SI method for 
+### Serial Interval - mean = 4.7 // sd = 2.9
 res_parametric_si <- estimate_R(covid_r$Confirmados_var, 
                                 method="parametric_si",
                                 config = make_config(list(
                                   mean_si = 4.7, 
                                   std_si = 2.9)))
 
-
-
 r_prt<- as.data.frame( res_parametric_si$R)
 
 r_prt<- left_join(covid_r, r_prt, by="t_start")
 
 r_prt<- r_prt %>% 
-  rename(r_efect="Mean(R)",
-         r_low="Quantile.0.025(R)",
-         r_high="Quantile.0.975(R)")
+  rename(
+      r_efect = "Mean(R)",
+      r_low = "Quantile.0.025(R)",
+      r_high = "Quantile.0.975(R)"
+      )
 
 ```
 
@@ -139,7 +142,7 @@ p1 <- ggplot()+
   
       geom_line(data = r_prt,                 
                aes(x=Data,               
-                   y = r_efect,
+                   y = r_efect
                    ),
              alpha=0.7,
              size=1 ) +
@@ -184,4 +187,45 @@ p1
 ```
 
 
+```{r estim-Re-uncertain-si}
+### R_e calculation - Parametric SI method for 
+### Serial Interval
+### -- mean 4.7 (95% CrI: 3.7, 6.0)
+### -- sd 2.9 (95% CrI: , )
+sens_configs <- 
+    make_config(
+        list(
+            mean_si = 4.7, std_mean_si = 0.7,
+            min_mean_si = 3.7, max_mean_si = 6.0,
+            std_si = 2.9, std_std_si = 0.5,
+            min_std_si = 1.9, max_std_si = 4.9,
+            n1 = 1000,
+            n2 = 1000,
+            seed = 123456789
+        )
+    )
 
+Re_nonparam_si <- 
+    estimate_R(
+        covid_r$Confirmados_var, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+
+plot(Re_nonparam_si, legend = FALSE)
+
+## Sample R from the first weekly window
+sample_window <- 1L
+R_sample <- sample_posterior_R(Re_nonparam_si, n = 1000, window = sample_window)
+
+```
+
+
+```{r lambda-overall-infectivity}
+
+```
+
+
+```{r lambda-overall-infectivity}
+
+```
