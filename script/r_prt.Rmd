@@ -30,6 +30,7 @@ library(highcharter)
 library(here)
 library(incidence)
 library(purrr)
+library(magrittr)
 ```
 
 ```{r}
@@ -119,13 +120,21 @@ covid_r<-covid_pt  %>%
 
 ### R_e calculation - Parametric SI method for 
 ### Serial Interval - mean = 4.7 // sd = 2.9
-res_parametric_si <- estimate_R(covid_r$Confirmados_var, 
-                                method="parametric_si",
-                                config = make_config(list(
-                                  mean_si = 4.7, 
-                                  std_si = 2.9)))
+res_parametric_si <- 
+    estimate_R(
+        covid_r$Confirmados_var, 
+        method ="parametric_si",
+        config = make_config(
+            list(
+                mean_si = 4.7, 
+                std_si = 2.9
+                )
+            )
+    )
 
-r_prt <- as.data.frame( res_parametric_si$R)
+# plot(res_parametric_si, legend = FALSE)
+
+r_prt <- as.data.frame(res_parametric_si$R)
 
 r_prt <- left_join(covid_r, r_prt, by="t_start")
 
@@ -340,6 +349,104 @@ covid_r_inc_model$info$doubling.conf
 # incidence predictions (fitted vs observed data)
 plot(covid_r_inc, fit = covid_r_inc_model)
 ```
+
+
+```{r 3-day-prediction-log-linear-growth}
+### predict number cases next 3 days maintaing current exponential growth
+### model elements for forecast are in covid_r_inc_model$model
+### structure of dataset for prediction can be checked with
+# head(covid_r_inc_model$info$pred)
+### must provide x-axis data as a mid-point from t_0
+### create x vector for forecasting on the next 3 days (reasonable amount time)
+case_pred_3_day <- 
+    data.frame(
+        dates = covid_r_inc_model$info$pred$dates[nrow(covid_r_inc_model$info$pred)] + 1:3,
+        dates.x = covid_r_inc_model$info$pred$dates.x[nrow(covid_r_inc_model$info$pred)] + 1:3
+    )
+
+n_case_pred_3_day <- 
+    predict(
+        object = covid_r_inc_model$model, 
+        newdata = case_pred_3_day, 
+        se.fit = TRUE, 
+        # type = "response",
+        interval = "prediction"
+        )
+
+### log-linear model
+### predictions are in log scale
+### anti-log to get final count predictions
+n_case_pred_3_day <- 
+    exp(x = n_case_pred_3_day[["fit"]])
+
+case_pred_3_day <- 
+    dplyr::bind_cols(
+        case_pred_3_day,
+        as.data.frame(n_case_pred_3_day)
+        ) %>% 
+    mutate(
+        type = "predict"
+    )
+
+case_obs_fit <- 
+    covid_r_inc_model$info$pred %>% 
+    mutate(
+        type = "fit"
+    )
+
+### final prediction
+covid_pred_3_day <- 
+    bind_rows(
+        case_obs_fit,
+        case_pred_3_day
+    )
+
+### plot not perfect
+### points and lines not coinciding on the x axis with the geom_col
+plot_pred_3_day <- 
+    ggplot() +
+    # geom_col(
+    #     data = covid_r, 
+    #     mapping = aes(x = Data, y = Confirmados_var), 
+    #     fill = "grey90"
+    #     ) + 
+    geom_point(
+        data = covid_pred_3_day, 
+        mapping = aes(x = dates, y = fit, colour = type), 
+        alpha = 0.7, 
+        size = 1.5
+        ) +
+    geom_line(
+        data = covid_pred_3_day, 
+        mapping = aes(x = dates, y = fit, colour = type), 
+        alpha = 0.7, 
+        size = 1.5
+        ) + 
+    geom_ribbon(
+        data = covid_pred_3_day, 
+        mapping = aes(x = dates, ymin = lwr, ymax = upr, fill = type), 
+        alpha = 0.25
+        ) +
+    scale_x_date(breaks = "1 day") + 
+    scale_y_continuous(
+        limits = c(0, max(covid_pred_3_day$upr)), 
+        breaks = pretty(covid_pred_3_day$upr),
+        labels = pretty(covid_pred_3_day$upr), 
+        name = "Medida"
+        ) +
+    theme_classic() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(
+        y = "Casos (n)", 
+        x = "Data (dias)", 
+        fill = "Medida"
+            )
+
+### display plot
+plot_pred_3_day
+
+```
+
 
 
 ```{r lambda-overall-infectivity}
