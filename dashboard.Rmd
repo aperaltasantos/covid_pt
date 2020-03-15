@@ -1,5 +1,5 @@
 ---
-title: "COVID-19 PT|`r format(Sys.time(), '%d %b %y-%H:%m')`"
+title: "COVID-19 PT | `r format(Sys.time(), '%d %b %y-%H:%m')`"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
