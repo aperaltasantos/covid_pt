@@ -346,26 +346,41 @@ mapdata <- get_data_from_map(download_map_data("countries/pt/pt-all"))
 library("viridisLite")
 
 
-    hcmap("countries/pt/pt-all", 
-      data = map_pt_cases, 
-      value = "numero",
-      joinBy = c("hc-a2", "hc.key"), 
-      name = "Confirmados",
-      dataLabels = list(enabled = TRUE, 
-                        format = '{numero}'),
-      borderColor = "#252525", 
-      borderWidth = 0.15,
-      tooltip = list(valueDecimals = 0))%>%
-  hc_mapNavigation(enabled = FALSE) %>%
-#  hc_colorAxis(dataClasses = color_classes(c(seq(0, 10, by = 2), 50))) %>%
-  hc_colorAxis(stops = color_stops(10, rev(inferno(20)))) %>%
-  hc_title(text = "Mapa dos casos confirmados por distrito") %>% 
-  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores \nA Nota: DGS faz o reporte por regiao de saúde, o mapa pode não representar a realidade")   %>%
-  hc_legend(layout = "vertical", verticalAlign = "bottom",
-            align = "right", valueDecimals = 0, floating = TRUE)  %>%
-  hc_add_theme(hc_theme_smpl()) %>% 
-  hc_exporting(
-    enabled = TRUE
+    hcmap(
+        "countries/pt/pt-all", 
+        data = map_pt_cases, 
+        value = "numero",
+        joinBy = c("hc-a2", "hc.key"), 
+        name = "Confirmados",
+        dataLabels = list(enabled = TRUE, 
+                          format = '{numero}'),
+        borderColor = "#252525", 
+        borderWidth = 0.15,
+        tooltip = list(valueDecimals = 0)
+        ### js function to change map label from Azores to Açores
+        ### not working
+        # tooltip = highcharter::JS(
+        #     paste0(
+        #         "function (tooltip) {
+        #     if (this.point.name == 'Azores') {
+        #         return 'Açores :' + this.point;
+        #     }
+        #     // If not null, use the default formatter
+        #     return this.point.name + ' :' + this.point;;
+        #     }"
+        #     )
+        # )
+    ) %>%
+        hc_mapNavigation(enabled = FALSE) %>%
+        #  hc_colorAxis(dataClasses = color_classes(c(seq(0, 10, by = 2), 50))) %>%
+        hc_colorAxis(stops = color_stops(10, rev(inferno(20)))) %>%
+        hc_title(text = "Mapa dos casos confirmados por distrito") %>% 
+        hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores \nA Nota: DGS faz o reporte por regiao de saúde, o mapa pode não representar a realidade")   %>%
+        hc_legend(layout = "vertical", verticalAlign = "bottom",
+                  align = "right", valueDecimals = 0, floating = TRUE)  %>%
+        hc_add_theme(hc_theme_smpl()) %>% 
+        hc_exporting(
+            enabled = TRUE
   )
 
 ```
