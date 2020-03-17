@@ -103,7 +103,10 @@ covid_r<-covid_pt  %>%
   filter(
     Data>as.Date("2020-02-28")
   ) %>%
-  dplyr::mutate(t_start = dplyr::row_number())
+  dplyr::mutate(
+    t_start = dplyr::row_number() %>% as.numeric(),
+    t_end = t_start + 6
+    )
 
 ```
 
@@ -136,7 +139,18 @@ res_parametric_si <-
 
 r_prt <- as.data.frame(res_parametric_si$R)
 
-r_prt <- left_join(covid_r, r_prt, by="t_start")
+# r_prt <- left_join(covid_r, r_prt, by="t_start")
+
+### join by t-end
+r_prt <- 
+  left_join(
+    x = covid_r, 
+    y = dplyr::select(
+      r_prt,
+      c("t_end", "Mean(R)", "Quantile.0.025(R)", "Quantile.0.975(R)")
+      ), 
+    by = c("t_start" = "t_end")
+    )
 
 r_prt <- 
     r_prt %>% 
@@ -221,6 +235,8 @@ p1
 ### Serial Interval
 ### -- mean 4.7 (95% CrI: 3.7, 6.0)
 ### -- sd 2.9 (95% CrI: 1.9, 4.9)
+### DO NOT USE THIS METHOD OF CALCULATION
+### NO ADDED ADVANTAGE FOR NOW
 sens_configs <- 
     make_config(
         list(
@@ -234,7 +250,7 @@ sens_configs <-
         )
     )
 
-Re_nonparam_si <- 
+Rt_nonparam_si <- 
     estimate_R(
         covid_r$Confirmados_var, 
         method = "uncertain_si",
@@ -242,19 +258,19 @@ Re_nonparam_si <-
         )
 
 ### inspect R_e estimate
-plot(Re_nonparam_si, legend = FALSE)
+plot(Rt_nonparam_si, legend = FALSE)
 
 ## Posterio sample R_e estimate
-sample_windows <- seq(length(Re_nonparam_si$R$t_start))
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
 
-posterior_R_e <- 
+posterior_R_t <- 
     map(
         .x = sample_windows,
         .f = function(x) {
             
             posterior_sample_obj <- 
                 sample_posterior_R(
-                    R = Re_nonparam_si,
+                    R = Rt_nonparam_si,
                     n = 1000, 
                     window = x
                 )
@@ -262,8 +278,9 @@ posterior_R_e <-
             posterior_sample_estim <- 
                 data.frame(
                     window_index = x,
-                    window_t_start = Re_nonparam_si$R$t_start[x],
-                    date_point = covid_r[covid_r$t_start == Re_nonparam_si$R$t_start[x], "Data"],
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
                     R_e_median = median(posterior_sample_obj),
                     R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
                     R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
@@ -275,20 +292,23 @@ posterior_R_e <-
     ) %>% 
     reduce(bind_rows)
 
-plot_posterior_R_e <- 
-    ggplot(data = posterior_R_e, mapping = aes(x = date_point, y = R_e_median)) + 
+plot_posterior_R_t <- 
+    ggplot(data = posterior_R_t, mapping = aes(x = date_point, y = R_e_median)) + 
     geom_line(alpha = 0.3, size = 1.2) + 
     geom_ribbon(mapping = aes(ymin = R_e_q0025, ymax = R_e_q0975), alpha = 0.1) + 
     geom_smooth(se = FALSE) + 
-    scale_x_date(date_breaks = "1 day") + 
+    scale_x_date(
+      date_breaks = "1 day",
+      limits = c(min(covid_r$Data), max(posterior_R_t$date_point))
+      ) + 
     scale_y_continuous(
-        breaks = 0:ceiling(max(posterior_R_e$R_e_q0975)),
+        breaks = 0:ceiling(max(posterior_R_t$R_e_q0975)),
         limits = c(0, NA)
         ) + 
     geom_hline(yintercept = 1) + 
     theme_classic()
 
-plot_posterior_R_e
+plot_posterior_R_t
 
 ```
 
