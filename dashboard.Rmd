@@ -45,8 +45,12 @@ rm(list=ls())
 options(scipen=4)
 ```
 
+
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 #library(tidyverse)
+library(EpiEstim)
 library(tidyr)
 library(readr)
 library(dplyr)
@@ -204,17 +208,6 @@ Vig. Epidemiologica
 Row
 -----------------------------------------------------------------------
 
-### Em vigilância
-```{r}
-x1 <- covid_pt_last$AS
-x2<- covid_pt_last$AS_sign
-x3<- abs(covid_pt_last$AS_var)
-valueBox(paste(x1,"(",x2,x3,")"), 
-         icon = "fa-search",
-         color="#fdbe85")
-
-```
-
 ### Suspeitos
 ```{r}
 x1 <- covid_pt_last$Suspeitos
@@ -222,7 +215,7 @@ x2<- covid_pt_last$Suspeitos_sign
 x3<- covid_pt_last$Suspeitos_var
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fa-exclamation-triangle",
-         color="#fd8d3c")
+         color="#fdd49e")
 
 ```
 
@@ -233,12 +226,8 @@ x2<- covid_pt_last$Confirmados_sign
 x3<- covid_pt_last$Confirmados_var
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fa-file-medical",
-         color="#e6550d")
+         color="#fdbb84")
 ```
-
-
-Row
------------------------------------------------------------------------
 
 ### Internados
 ```{r}
@@ -247,7 +236,22 @@ x2<- covid_pt_last$Internados_sign
 x3<- covid_pt_last$Internados_var
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fa-hospital",
-         color="#a63603")
+         color="#fc8d59")
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Intensivos
+```{r}
+x1 <- covid_pt_last$Intensivos
+x2<- covid_pt_last$Intensivos_sign
+x3<- abs(covid_pt_last$Intensivos_var)
+valueBox(paste(x1,"(",x2,x3,")"), 
+         icon = "fas fa-procedures",
+         color="#ef6548")
+
 ```
 
 ### Recuperados
@@ -346,41 +350,26 @@ mapdata <- get_data_from_map(download_map_data("countries/pt/pt-all"))
 library("viridisLite")
 
 
-    hcmap(
-        "countries/pt/pt-all", 
-        data = map_pt_cases, 
-        value = "numero",
-        joinBy = c("hc-a2", "hc.key"), 
-        name = "Confirmados",
-        dataLabels = list(enabled = TRUE, 
-                          format = '{numero}'),
-        borderColor = "#252525", 
-        borderWidth = 0.15,
-        tooltip = list(valueDecimals = 0)
-        ### js function to change map label from Azores to Açores
-        ### not working
-        # tooltip = highcharter::JS(
-        #     paste0(
-        #         "function (tooltip) {
-        #     if (this.point.name == 'Azores') {
-        #         return 'Açores :' + this.point;
-        #     }
-        #     // If not null, use the default formatter
-        #     return this.point.name + ' :' + this.point;;
-        #     }"
-        #     )
-        # )
-    ) %>%
-        hc_mapNavigation(enabled = FALSE) %>%
-        #  hc_colorAxis(dataClasses = color_classes(c(seq(0, 10, by = 2), 50))) %>%
-        hc_colorAxis(stops = color_stops(10, rev(inferno(20)))) %>%
-        hc_title(text = "Mapa dos casos confirmados por distrito") %>% 
-        hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores \nA Nota: DGS faz o reporte por regiao de saúde, o mapa pode não representar a realidade")   %>%
-        hc_legend(layout = "vertical", verticalAlign = "bottom",
-                  align = "right", valueDecimals = 0, floating = TRUE)  %>%
-        hc_add_theme(hc_theme_smpl()) %>% 
-        hc_exporting(
-            enabled = TRUE
+    hcmap("countries/pt/pt-all", 
+      data = map_pt_cases, 
+      value = "numero",
+      joinBy = c("hc-a2", "hc.key"), 
+      name = "Confirmados",
+      dataLabels = list(enabled = TRUE, 
+                        format = '{numero}'),
+      borderColor = "#252525", 
+      borderWidth = 0.15,
+      tooltip = list(valueDecimals = 0))%>%
+  hc_mapNavigation(enabled = FALSE) %>%
+#  hc_colorAxis(dataClasses = color_classes(c(seq(0, 10, by = 2), 50))) %>%
+  hc_colorAxis(stops = color_stops(10, rev(inferno(20)))) %>%
+  hc_title(text = "Mapa dos casos confirmados por distrito") %>% 
+  hc_subtitle(text = "Fonte: Direção-Geral da Saúde & Autores \nA Nota: DGS faz o reporte por regiao de saúde, o mapa pode não representar a realidade")   %>%
+  hc_legend(layout = "vertical", verticalAlign = "bottom",
+            align = "right", valueDecimals = 0, floating = TRUE)  %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_exporting(
+    enabled = TRUE
   )
 
 ```
@@ -425,6 +414,439 @@ highchart() %>%
     enabled = TRUE
   )
 ```
+
+
+Previsão da evolução
+===================================== 
+
+```{r estim-Re-uncertain-si}
+library(purrr)
+library(incidence)
+covid_r<-covid_pt  %>%
+  select(
+    Data,Confirmados_var
+  )  %>%
+  filter(
+    Data>as.Date("2020-02-28")
+  ) %>%
+  dplyr::mutate(t_start = dplyr::row_number())
+### R_e calculation - Uncertainty method
+### Serial Interval
+### -- mean 4.7 (95% CrI: 3.7, 6.0)
+### -- sd 2.9 (95% CrI: 1.9, 4.9)
+sens_configs <- 
+    make_config(
+        list(
+            mean_si = 4.7, std_mean_si = 0.7,
+            min_mean_si = 3.7, max_mean_si = 6.0,
+            std_si = 2.9, std_std_si = 0.5,
+            min_std_si = 1.9, max_std_si = 4.9,
+            n1 = 1000,
+            n2 = 100,
+            seed = 123456789
+        )
+    )
+Re_nonparam_si <- 
+    estimate_R(
+        covid_r$Confirmados_var, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Re_nonparam_si$R$t_start))
+posterior_R_e <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Re_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Re_nonparam_si$R$t_start[x],
+                    date_point = covid_r[covid_r$t_start == Re_nonparam_si$R$t_start[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+#plot_posterior_R_e <- 
+#    ggplot(data = posterior_R_e, mapping = aes(x = date_point, y = R_e_median)) + 
+#    geom_line(alpha = 0.3, size = 1.2) + 
+#    geom_ribbon(mapping = aes(ymin = R_e_q0025, ymax = R_e_q0975), alpha = 0.1) + 
+#    geom_smooth(se = FALSE) + 
+#    scale_x_date(date_breaks = "1 day") + 
+#    scale_y_continuous(
+#        breaks = 0:ceiling(max(posterior_R_e$R_e_q0975)),
+#        limits = c(0, NA)
+#        ) + 
+#    geom_hline(yintercept = 1) + 
+#    theme_classic()
+#plot_posterior_R_e
+```
+
+
+```{r estim-Re-uncertain-si-imported}
+### the model can account for imported cases at the beginning of the outbreak
+### perhaps consider the first 2 ??? or 4 on the first two days
+### if so, it will most likely decrease the initial R_e but increase it afterwards due to undiagnosed community transmission
+```
+
+
+```{r log-linear-growth}
+covid_r_inc <- 
+    rep(
+        x = unlist(covid_r$Data), 
+        times = unlist(covid_r$Confirmados_var)
+        ) %>% 
+    incidence(
+        dates = .,
+        interval = "1 day",
+        standard = TRUE,
+        first_date = min(covid_r$Data),
+        last_date = max(covid_r$Data)
+        )
+### find peak for adjustment of trend on model by the split argument    
+covid_r_inc_peak <- find_peak(covid_r_inc)
+
+### fit log-linear model
+### fits two exponential models to incidence data, 
+### of the form: log(y) = r * t + b , where
+### 'y' is the incidence,
+### 't' is time (in days)
+### 'r' is the growth rate
+### 'b' is the origin
+### function fit will fit one model by default, 
+### but will fit two models on either side of a splitting date 
+### (typically the peak of the epidemic) if the argument split is provided
+covid_r_inc_model <- 
+    fit(
+        x = covid_r_inc,
+        # split = covid_r_inc_peak,
+        NULL
+    )
+# check object entirely
+#covid_r_inc_model
+# (daily growth rate)
+#covid_r_inc_model$info$r
+#covid_r_inc_model$info$r.conf
+# (doubling time in days)
+#covid_r_inc_model$info$doubling
+
+#covid_r_inc_model$info$doubling.conf
+# incidence predictions (fitted vs observed data)
+#plot(covid_r_inc, fit = covid_r_inc_model)
+```
+
+
+
+
+```{r 3-day-prediction-log-linear-growth}
+### predict number cases next 3 days maintaing current exponential growth
+### model elements for forecast are in covid_r_inc_model$model
+### structure of dataset for prediction can be checked with
+# head(covid_r_inc_model$info$pred)
+### must provide x-axis data as a mid-point from t_0
+### create x vector for forecasting on the next 3 days (reasonable amount time)
+case_pred_3_day <- 
+    data.frame(
+        dates = covid_r_inc_model$info$pred$dates[nrow(covid_r_inc_model$info$pred)] + 1:3,
+        dates.x = covid_r_inc_model$info$pred$dates.x[nrow(covid_r_inc_model$info$pred)] + 1:3
+    )
+n_case_pred_3_day <- 
+    predict(
+        object = covid_r_inc_model$model, 
+        newdata = case_pred_3_day, 
+        se.fit = TRUE, 
+        # type = "response",
+        interval = "prediction"
+        )
+### log-linear model
+### predictions are in log scale
+### anti-log to get final count predictions
+n_case_pred_3_day <- 
+    exp(x = n_case_pred_3_day[["fit"]])
+case_pred_3_day <- 
+    dplyr::bind_cols(
+        case_pred_3_day,
+        as.data.frame(n_case_pred_3_day)
+        ) %>% 
+    mutate(
+        type = "predict"
+    )
+case_obs_fit <- 
+    covid_r_inc_model$info$pred %>% 
+    mutate(
+        type = "fit"
+    )
+### final prediction
+covid_pred_3_day <- 
+    bind_rows(
+        case_obs_fit,
+        case_pred_3_day
+    )
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Previsao número de novos casos (próximas 24 horas)
+
+```{r}
+# (`r format(x4, '%d %b %y)`)
+# eu removeria o IC95% (a escala superior pode ser mal interpretada)
+# valueBox(paste(x1, "(",x2,"-",x3,")" ), 
+#          icon = "fas fa-forward",
+#          color="#4292c6")
+case_pred_3_day_1 <- case_pred_3_day %>% 
+  filter(dates==first(dates))
+
+x1 <- round(case_pred_3_day_1$fit, 0)
+
+valueBox(x1, 
+         icon = "fas fa-forward",
+         color="#4292c6")
+```
+
+
+### Tempo de duplicação de casos (dias)
+
+```{r}
+x1 <- round(covid_r_inc_model$info$doubling, 1) ## 1 decimal case is necessary
+x2 <- round(covid_r_inc_model$info$doubling.conf[1], 1)
+x3 <- round(covid_r_inc_model$info$doubling.conf[2], 1)
+
+valueBox(paste(x1, "(",x2,"-",x3,")" ), 
+         icon = "fas fa-angle-double-up",
+         color="#6baed6")
+```
+
+
+### Número médio de casos secundários por nova infecção, Rt
+
+```{r}
+
+posterior_R_e_last<-posterior_R_e %>% 
+  filter(date_point==last(date_point))
+
+x1 <- round(posterior_R_e_last$R_e_median, 1)
+x2 <- round(posterior_R_e_last$R_e_q0025, 1)
+x3 <- round(posterior_R_e_last$R_e_q0975, 1)
+
+valueBox(paste(x1, "(",x2,"-",x3,")" ), 
+         icon = "fas fa-chart-network",
+         color="#9ecae1")
+```
+
+
+```{r}
+library(lubridate)
+covid_pred_3_day_last<-covid_pred_3_day %>% 
+  filter(dates==last(dates))
+
+x1 <- round(covid_pred_3_day_last$fit, 0)
+x2 <- round(covid_pred_3_day_last$lwr, 0)
+x3 <- round(covid_pred_3_day_last$upr, 0)
+x4 <- covid_pred_3_day_last$dates
+```
+
+
+```{r}
+
+#data(lung)
+#lung <- mutate(lung, sex = ifelse(sex == 1, "Male", "Female"))
+#fit <- survfit(Surv(time, status) ~ sex, data = lung) 
+
+#hchart(fit, ranges = TRUE)
+
+
+#highchart() %>%
+#  hc_add_series(data, "arearange", hcaes(x, low = lowvalue, high = highvalue))
+```
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+```{r}
+covid_pred_3_day <- covid_pred_3_day %>%
+  mutate(fit = round(fit, 0),
+         lwr=round(lwr, 0),
+          upr=round(upr, 0))
+
+covid_pred_3_day <- covid_pred_3_day %>%
+  pivot_wider(names_from = type,
+              values_from = fit:upr
+  )
+
+
+
+
+#hc_add_series(pokemon, type = "bar", hcaes(x = type_2, group = type_1, y = n))
+```
+
+### Previsão do número de novos casos de COVID-19 a 3 dias
+
+```{r}
+
+
+
+p3<- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Previsão a 3 dias COVID-19") %>% 
+  hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
+  hc_xAxis(categories = format(covid_pred_3_day$dates, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE)) %>% 
+  hc_yAxis(title = list(text = "Novos Casos COVID-19"),min = 0) %>% 
+  hc_tooltip(
+    formatter = highcharter::JS(
+      paste0("function () {
+            return this.points.reduce(function (s, point) {
+                return s + '<br/>' + point.series.name + ': ' +
+                    point.y;
+            }, '<b>' + this.x + '</b>');
+        }")
+    ) ,
+    shared = TRUE
+  ) %>%
+#  hc_add_series(data = covid_pred_3_day$upr_predict,
+#                name = "Limite sup-previsão", 
+#                color = "#fcbba1") %>%
+#  hc_add_series(data = covid_pred_3_day$lwr_predict,
+#                name = "Limite inf-previsão", 
+#                color = "#fcbba1") %>%
+  hc_add_series(data = covid_pred_3_day$fit_predict,
+                name = "Novos casos (previsão)", 
+                color = "#e6550d") %>%
+    hc_add_series(data = covid_pred_3_day$fit_fit,
+                name = "Novos casos (observado)", 
+                color = "#525252") %>%
+  hc_exporting(
+    enabled = TRUE
+  )
+
+p3 
+
+
+```
+
+### Número reprodutivo diário $R_{t}$
+
+```{r}
+
+posterior_R_e <- posterior_R_e %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2))
+
+p4<- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
+  hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
+  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE)) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+#  hc_tooltip(
+    # pointFormat = paste0('<span style="color:{series.color}">●</span> {series.name}: <b>{point.low}</b> - <b>{point.high}</b><br/>'),
+#    formatter = highcharter::JS(
+#      paste0("function () {
+#            return this.points.reduce(function (s, point) {
+#                return s + '<br/>' + point.series.name + ': ' +
+#                    point.y + '(' + point.low + ' - ' + point.high + ')';
+#            }, '<b>' + this.x + '</b>'
+#            );
+#        }")
+#    ),
+#    valueDecimals = 1,
+#    shared = TRUE
+#  ) %>%
+      hc_add_series(data = posterior_R_e$R_e_median,
+                name = "$R_{t}$", 
+                color = "#e6550d") %>%
+  hc_add_series(posterior_R_e, 
+                hcaes( low = R_e_q0025, high = R_e_q0975),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9")
+
+
+p4
+```
+
+### Métodos
+
+__Previsão__ 
+
+Foi utilizado um modelo linear-logarítmico referente aos dados de incidência (novos casos reportados):
+
+$$
+log (y) = r *t+b
+$$
+onde:
+
+- _y_ é o número de novos casos \n
+
+- _t_ é o tempo desde o início de observação do surto (em dias) \n
+
+- _r_ é a taxa de crescimento por período de tempo _t_ \n
+
+- _b_ é o número de casos (logarítmico) no início do surto \n
+
+É realizada diariamente uma actualização da previsão com todos os dados reportados disponíveis. A previsão efectuada do número de novos casos abrange a janela tamporal de 3 dias desde o último dia de reporte e actualização dos dados.
+
+Os valores de previsão devem ser interpretados face ao número reduzido de dias de observacao bem como à aplicacao de medidas de âmbito de populacional contrariem os pressupostos do modelo utilizado.
+
+__$R_{t}$__ 
+
+O número reprodutivo no período temporal _t_ ('$R_{t}$') estima o número médio de casos secundários infectados por um caso durante o seu período infeccioso, no período de tempo _t_. Sendo assim, este número mede a dinâmica de transmissão de uma infecção num período temporal específico, podendo ser usado como um indicador instantâneo da transmissão (velocímetro).
+
+O período temporal de cálculo utilizado abrange uma janela temporal de 7 dias. Exemplificando, o valor de $R_{t}$ reportado em 17-03-2020 diz respeito ao período temporal de 7 dias que termina nesse dia (11 a 17 de Março).
+
+Foi utilizado o método de cálculo de $R_{t}$ de [Cori A., _et. al._](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3816335/). O cálculo deste número requer a definicao de uma estimativa do intervalo de série (_serial interval_) - número de dias entre o início de sintomas de um caso e o início de sintomas de um caso secundário do primeiro - para a infeccao em estudo. Para o efeito, foram utilizados os valores reportados por [Abbott](https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html) (média 4,7 dias (95% CrI: 3,7 - 6,0); desvio padrão 2,9 dias (CrI 95%: 1,9 - 4,9)).
+
+Os cálculos foram efectuados com o software _R_, versãp 3.6.1, e pacote _EpiEstim_ versão 2.2-1.
+
+Não foi considerado o efeito dos casos importados.
+
+Não foi considerado, nesta fase de análise, o atraso de reporte dos novos casos.
+
+Os dados do novos casos por dia foram calculados com base no boletim diário da Direcção Geral da Saúde. 
+
+
+__Tempo de duplicação__ 
+
+O tempo de duplicação de novos casos é obtido através da taxa de crescimento exponencial do modelo linear logarítmico, segundo a fórmula:
+
+$$
+T_{d} = \frac{ln(2)}{ln(1 + r)}
+$$
+
+__Autores da análise__ 
+
+Andre Peralta-Santos e Luís Alves de Sousa 
 
 Resposta SNS 24
 =====================================
@@ -519,7 +941,13 @@ Row
 hc <- highchart() %>% 
   hc_chart(type = "area") %>% 
   hc_title(text = "Desempenho da linha SNS 24") %>% 
-  hc_subtitle(text = "Fonte: Portal da transparência") %>% 
+  hc_subtitle(
+    text = paste0(
+      "Fonte: Portal da transparência. ",
+      "<\br>",
+      "<em>Sem dados actualizados disponíveis na fonte desde 10-03-2020.</em>"
+      )
+    ) %>% 
   hc_xAxis(categories = format(sns2$date, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE),
