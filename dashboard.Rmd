@@ -825,6 +825,16 @@ onde:
 
 Os valores de previsão devem ser interpretados face ao número reduzido de dias de observacao bem como à aplicação de medidas de âmbito populacional qie contrariem os pressupostos do modelo utilizado.
 
+
+__Tempo de duplicação__ 
+
+O tempo de duplicação de novos casos é obtido através da taxa de crescimento exponencial (_r_) calculada no modelo linear logarítmico, segundo a fórmula:
+
+$$
+T_{d} = \frac{ln(2)}{ln(1 + r)}
+$$
+
+
 __$R_{t}$__ 
 
 O número reprodutivo no período temporal _t_ ('$R_{t}$') estima o número médio de casos secundários infectados por um caso durante o seu período infeccioso, para o  período de tempo _t_. Sendo assim, este número mede a dinâmica de transmissão de uma infecção num período temporal específico, podendo ser usado como um indicador "instantâneo" da transmissão (velocímetro).
@@ -841,14 +851,6 @@ Não foi considerado, nesta fase de análise, o atraso de reporte dos novos caso
 
 Os dados do novos casos por dia foram calculados com base no boletim diário da Direcção-Geral da Saúde. 
 
-
-__Tempo de duplicação__ 
-
-O tempo de duplicação de novos casos é obtido através da taxa de crescimento exponencial (_r_) calculada no modelo linear logarítmico, segundo a fórmula:
-
-$$
-T_{d} = \frac{ln(2)}{ln(1 + r)}
-$$
 
 __Autores da análise__ 
 
