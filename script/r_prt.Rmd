@@ -406,11 +406,11 @@ case_pred_3_day <-
         type = "predict"
     )
 
-case_obs_fit <- 
-    covid_r_inc_model$info$pred %>% 
-    mutate(
-        type = "fit"
-    )
+# case_obs_fit <- 
+#     covid_r_inc_model$info$pred %>% 
+#     mutate(
+#         type = "fit"
+#     )
 
 ### final prediction
 covid_pred_3_day <- 
