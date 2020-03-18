@@ -788,11 +788,11 @@ p4<- highchart() %>%
 #    valueDecimals = 1,
 #    shared = TRUE
 #  ) %>%
-      hc_add_series(data = posterior_R_e$R_e_median,
+      hc_add_series(data = posterior_R_e$fit,
                 name = "Rt", 
                 color = "#e6550d") %>%
   hc_add_series(posterior_R_e, 
-                hcaes( low = R_e_q0025, high = R_e_q0975),     
+                hcaes( low = lwr, high = upr),     
 #                id = "ForecastRange-FL", 
                 type = "arearange", 
                 name = "Incerteza", 
