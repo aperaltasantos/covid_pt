@@ -1,5 +1,5 @@
 ---
-title: "COVID-19PT`r format(Sys.time(),'%d %b %y-%H:%m')`"
+title: "COVID-19PT | `r format(Sys.time(),'%d %b %y-%H:%m')`"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
@@ -212,7 +212,7 @@ Row
 ```{r}
 x1 <- covid_pt_last$Suspeitos
 x2<- covid_pt_last$Suspeitos_sign
-x3<- covid_pt_last$Suspeitos_var
+x3<- abs(covid_pt_last$Suspeitos_var)
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fa-exclamation-triangle",
          color="#fdd49e")
@@ -223,7 +223,7 @@ valueBox(paste(x1,"(",x2,x3,")"),
 ```{r}
 x1 <- covid_pt_last$Confirmados
 x2<- covid_pt_last$Confirmados_sign
-x3<- covid_pt_last$Confirmados_var
+x3<- abs(covid_pt_last$Confirmados_var)
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fa-file-medical",
          color="#fdbb84")
@@ -233,7 +233,7 @@ valueBox(paste(x1,"(",x2,x3,")"),
 ```{r}
 x1 <- covid_pt_last$Internados
 x2<- covid_pt_last$Internados_sign
-x3<- covid_pt_last$Internados_var
+x3<- abs(covid_pt_last$Internados_var)
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fa-hospital",
          color="#fc8d59")
@@ -258,7 +258,7 @@ valueBox(paste(x1,"(",x2,x3,")"),
 ```{r}
 x1 <- covid_pt_last$Recuperados
 x2<- covid_pt_last$Recuperados_sign
-x3<- covid_pt_last$Recuperados_var
+x3<- abs(covid_pt_last$Recuperados_var)
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fas fa-walking",
          color="#a1d99b")
@@ -269,7 +269,7 @@ valueBox(paste(x1,"(",x2,x3,")"),
 ```{r}
 x1 <- covid_pt_last$Mortes
 x2<- covid_pt_last$Mortes_sign
-x3<- covid_pt_last$Mortes_var
+x3<- abs(covid_pt_last$Mortes_var)
 valueBox(paste(x1,"(",x2,x3,")"), 
          icon = "fa-infinity",
          color="#bdbdbd")
@@ -446,7 +446,8 @@ sens_configs <-
             seed = 123456789
         )
     )
-Re_nonparam_si <- 
+
+Rt_nonparam_si <- 
     estimate_R(
         covid_r$Confirmados_var, 
         method = "uncertain_si",
@@ -455,15 +456,17 @@ Re_nonparam_si <-
 ### inspect R_e estimate
 #plot(Re_nonparam_si, legend = FALSE)
 ## Posterio sample R_e estimate
-sample_windows <- seq(length(Re_nonparam_si$R$t_start))
-posterior_R_e <- 
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
     map(
         .x = sample_windows,
         .f = function(x) {
             
             posterior_sample_obj <- 
                 sample_posterior_R(
-                    R = Re_nonparam_si,
+                    R = Rt_nonparam_si,
                     n = 1000, 
                     window = x
                 )
@@ -471,8 +474,9 @@ posterior_R_e <-
             posterior_sample_estim <- 
                 data.frame(
                     window_index = x,
-                    window_t_start = Re_nonparam_si$R$t_start[x],
-                    date_point = covid_r[covid_r$t_start == Re_nonparam_si$R$t_start[x], "Data"],
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
                     R_e_median = median(posterior_sample_obj),
                     R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
                     R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
@@ -641,7 +645,7 @@ valueBox(paste(x1, "(",x2,"-",x3,")" ),
 
 ```{r}
 
-posterior_R_e_last<-posterior_R_e %>% 
+posterior_R_e_last<-posterior_R_t %>% 
   filter(date_point==last(date_point))
 
 x1 <- round(posterior_R_e_last$R_e_median, 1)
@@ -730,12 +734,14 @@ p3<- highchart() %>%
 #  hc_add_series(data = covid_pred_3_day$lwr_predict,
 #                name = "Limite inf-previsão", 
 #                color = "#fcbba1") %>%
+  hc_add_series(data = covid_pred_3_day$fit_fit,
+                name = "Novos casos (observado)", 
+                color = "#5ab4ac" # changed colour hex to accomodate colou blindness - Purple-Green diverging colour scale
+                ) %>%
   hc_add_series(data = covid_pred_3_day$fit_predict,
                 name = "Novos casos (previsão)", 
-                color = "#e6550d") %>%
-    hc_add_series(data = covid_pred_3_day$fit_fit,
-                name = "Novos casos (observado)", 
-                color = "#525252") %>%
+                color = "#af8dc3" # changed colour hex to accomodate colou blindness - Purple-Green diverging colour scale
+                ) %>%
   hc_exporting(
     enabled = TRUE
   )
@@ -749,7 +755,7 @@ p3
 
 ```{r}
 
-posterior_R_e <- posterior_R_e %>%
+posterior_R_e <- posterior_R_t %>%
   mutate(fit = round(R_e_median, 2),
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
@@ -783,7 +789,7 @@ p4<- highchart() %>%
 #    shared = TRUE
 #  ) %>%
       hc_add_series(data = posterior_R_e$R_e_median,
-                name = "$R_{t}$", 
+                name = "Rt", 
                 color = "#e6550d") %>%
   hc_add_series(posterior_R_e, 
                 hcaes( low = R_e_q0025, high = R_e_q0975),     
@@ -817,28 +823,28 @@ onde:
 
 É realizada diariamente uma actualização da previsão com todos os dados reportados disponíveis. A previsão efectuada do número de novos casos abrange a janela tamporal de 3 dias desde o último dia de reporte e actualização dos dados.
 
-Os valores de previsão devem ser interpretados face ao número reduzido de dias de observacao bem como à aplicacao de medidas de âmbito de populacional contrariem os pressupostos do modelo utilizado.
+Os valores de previsão devem ser interpretados face ao número reduzido de dias de observacao bem como à aplicação de medidas de âmbito populacional qie contrariem os pressupostos do modelo utilizado.
 
 __$R_{t}$__ 
 
-O número reprodutivo no período temporal _t_ ('$R_{t}$') estima o número médio de casos secundários infectados por um caso durante o seu período infeccioso, no período de tempo _t_. Sendo assim, este número mede a dinâmica de transmissão de uma infecção num período temporal específico, podendo ser usado como um indicador instantâneo da transmissão (velocímetro).
+O número reprodutivo no período temporal _t_ ('$R_{t}$') estima o número médio de casos secundários infectados por um caso durante o seu período infeccioso, para o  período de tempo _t_. Sendo assim, este número mede a dinâmica de transmissão de uma infecção num período temporal específico, podendo ser usado como um indicador "instantâneo" da transmissão (velocímetro).
 
 O período temporal de cálculo utilizado abrange uma janela temporal de 7 dias. Exemplificando, o valor de $R_{t}$ reportado em 17-03-2020 diz respeito ao período temporal de 7 dias que termina nesse dia (11 a 17 de Março).
 
-Foi utilizado o método de cálculo de $R_{t}$ de [Cori A., _et. al._](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3816335/). O cálculo deste número requer a definicao de uma estimativa do intervalo de série (_serial interval_) - número de dias entre o início de sintomas de um caso e o início de sintomas de um caso secundário do primeiro - para a infeccao em estudo. Para o efeito, foram utilizados os valores reportados por [Abbott](https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html) (média 4,7 dias (95% CrI: 3,7 - 6,0); desvio padrão 2,9 dias (CrI 95%: 1,9 - 4,9)).
+Foi utilizado o método de cálculo de $R_{t}$ de [Cori A., _et. al._](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3816335/). O cálculo deste número requer a definição de uma estimativa do intervalo de série (_serial interval_) - número de dias entre o início de sintomas de um caso e o início de sintomas de um caso secundário do primeiro - para a infecção em estudo. Para o efeito, foram utilizados os valores reportados por [Abbott S., _et. al._](https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html) - média de 4,7 dias (Intervalo de Credibilidade 95% [CrI 95% CrI]: 3,7 - 6,0) e desvio padrão de 2,9 dias (CrI 95% : 1,9 - 4,9)).
 
-Os cálculos foram efectuados com o software _R_, versãp 3.6.1, e pacote _EpiEstim_ versão 2.2-1.
+Os cálculos foram efectuados com o software _R_, versão 3.6.1, e pacote _EpiEstim_ versão 2.2-1.
 
 Não foi considerado o efeito dos casos importados.
 
 Não foi considerado, nesta fase de análise, o atraso de reporte dos novos casos.
 
-Os dados do novos casos por dia foram calculados com base no boletim diário da Direcção Geral da Saúde. 
+Os dados do novos casos por dia foram calculados com base no boletim diário da Direcção-Geral da Saúde. 
 
 
 __Tempo de duplicação__ 
 
-O tempo de duplicação de novos casos é obtido através da taxa de crescimento exponencial do modelo linear logarítmico, segundo a fórmula:
+O tempo de duplicação de novos casos é obtido através da taxa de crescimento exponencial (_r_) calculada no modelo linear logarítmico, segundo a fórmula:
 
 $$
 T_{d} = \frac{ln(2)}{ln(1 + r)}
@@ -846,7 +852,7 @@ $$
 
 __Autores da análise__ 
 
-Andre Peralta-Santos e Luís Alves de Sousa 
+André Peralta-Santos e Luís Alves de Sousa 
 
 Resposta SNS 24
 =====================================
@@ -944,7 +950,7 @@ hc <- highchart() %>%
   hc_subtitle(
     text = paste0(
       "Fonte: Portal da transparência. ",
-      "<\br>",
+      "\n",
       "<em>Sem dados actualizados disponíveis na fonte desde 10-03-2020.</em>"
       )
     ) %>% 

@@ -235,8 +235,6 @@ p1
 ### Serial Interval
 ### -- mean 4.7 (95% CrI: 3.7, 6.0)
 ### -- sd 2.9 (95% CrI: 1.9, 4.9)
-### DO NOT USE THIS METHOD OF CALCULATION
-### NO ADDED ADVANTAGE FOR NOW
 sens_configs <- 
     make_config(
         list(
