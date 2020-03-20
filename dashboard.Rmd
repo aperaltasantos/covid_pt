@@ -735,7 +735,7 @@ p3<- highchart() %>%
 #                name = "Limite inf-previsão", 
 #                color = "#fcbba1") %>%
   hc_add_series(data = covid_pred_3_day$fit_fit,
-                name = "Novos casos (observado)", 
+                name = "Novos casos (modelo)", 
                 color = "#5ab4ac" # changed colour hex to accomodate colou blindness - Purple-Green diverging colour scale
                 ) %>%
   hc_add_series(data = covid_pred_3_day$fit_predict,
