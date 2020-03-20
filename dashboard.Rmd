@@ -806,7 +806,7 @@ p4
 
 __Previsão__ 
 
-Foi utilizado um modelo linear-logarítmico referente aos dados de incidência (novos casos reportados):
+Foi utilizado um modelo linear-logarítmico referente aos dados de novos casos reportados:
 
 $$
 log (y) = r *t+b
@@ -819,11 +819,15 @@ onde:
 
 - _r_ é a taxa de crescimento por período de tempo _t_ \n
 
-- _b_ é o número de casos (logarítmico) no início do surto \n
+- _b_ é o número de casos (escala logarítmica) no início do surto \n
 
 É realizada diariamente uma actualização da previsão com todos os dados reportados disponíveis. A previsão efectuada do número de novos casos abrange a janela tamporal de 3 dias desde o último dia de reporte e actualização dos dados.
 
-Os valores de previsão devem ser interpretados face ao número reduzido de dias de observacao bem como à aplicação de medidas de âmbito populacional qie contrariem os pressupostos do modelo utilizado.
+Os valores de previsão devem ser interpretados face ao número reduzido de dias de observação bem como à aplicação de medidas de âmbito populacional que contrariem os pressupostos do modelo utilizado.
+
+Os valores apresentados como "Novos casos (modelo)" representam o número de casos estimados pelo modelo para uma determinada data observada. A diferenca entre este número e o valor efectivamente observado representará o erro do modelo.
+
+Os valores apresentados como "Novos casos (previsão)" representam o número de casos previstos para os 3 dias seguintes, em referência à última data de reporte de dados.
 
 
 __Tempo de duplicação__ 
@@ -833,13 +837,15 @@ O tempo de duplicação de novos casos é obtido através da taxa de crescimento
 $$
 T_{d} = \frac{ln(2)}{ln(1 + r)}
 $$
-
+Quanto maior for o valor do tempode duplicação, menor será a velocidade de progressão da transmissão.
 
 __$R_{t}$__ 
 
 O número reprodutivo no período temporal _t_ ('$R_{t}$') estima o número médio de casos secundários infectados por um caso durante o seu período infeccioso, para o  período de tempo _t_. Sendo assim, este número mede a dinâmica de transmissão de uma infecção num período temporal específico, podendo ser usado como um indicador "instantâneo" da transmissão (velocímetro).
 
-O período temporal de cálculo utilizado abrange uma janela temporal de 7 dias. Exemplificando, o valor de $R_{t}$ reportado em 17-03-2020 diz respeito ao período temporal de 7 dias que termina nesse dia (11 a 17 de Março).
+Tal como um velocímetro, $R_{t}$ permite indicar quão rápido decorre a tranmissão (se $R_{t}$ estiver acima de 1, a transmissão está a decorrer a um ritmo elevado e a epidemia está a alargar-se), bem como se esta se encontra em aceleração ou desaceleração, ao longo de um determinado período do tempo (ou seja, se $R_{t}$ se está a afastar ou aproximar de 1, respectivamente).
+
+O período temporal de cálculo utilizado abrange uma janela temporal de 7 dias. Exemplificando, o valor de $R_{t}$ reportado em 17-03-2020 diz respeito ao período temporal de 7 dias que termina nesse dia (11 a 17 de Março). Este elemento deve ser acutelado na interpretação do valor de $R_{t}$ como sendo reflexo de uma janela de transmissão que decorreu, para este cálculo concreto, nos últimos 7 dias.
 
 Foi utilizado o método de cálculo de $R_{t}$ de [Cori A., _et. al._](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3816335/). O cálculo deste número requer a definição de uma estimativa do intervalo de série (_serial interval_) - número de dias entre o início de sintomas de um caso e o início de sintomas de um caso secundário do primeiro - para a infecção em estudo. Para o efeito, foram utilizados os valores reportados por [Abbott S., _et. al._](https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html) - média de 4,7 dias (Intervalo de Credibilidade 95% [CrI 95% CrI]: 3,7 - 6,0) e desvio padrão de 2,9 dias (CrI 95% : 1,9 - 4,9)).
 
