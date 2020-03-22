@@ -687,29 +687,43 @@ Row {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ```{r}
-covid_pred_3_day <- covid_pred_3_day %>%
-  mutate(fit = round(fit, 0),
-         lwr=round(lwr, 0),
-          upr=round(upr, 0))
+covid_pred_3_day <- 
+  covid_pred_3_day %>%
+  mutate(
+    fit = round(fit, 0),
+    lwr = round(lwr, 0),
+    upr = round(upr, 0)
+    )
 
-covid_pred_3_day <- covid_pred_3_day %>%
-  pivot_wider(names_from = type,
-              values_from = fit:upr
-  )
+covid_pred_3_day <- 
+  covid_pred_3_day %>%
+  pivot_wider(
+    names_from = type,
+    values_from = fit:upr
+  ) %>% 
+  mutate(dates = dates - 0.5) %>% 
+  left_join(
+    x = ., 
+    y = data.frame(dates = as.Date(covid_r_inc$dates), obs = covid_r_inc$counts), 
+    by = "dates"
+      )
 
+# hc_add_series(pokemon, type = "bar", hcaes(x = type_2, group = type_1, y = n))
 
+###  structure of date vars is different on incidence obj and predict data object
+###  check dput(as.Date(covid_r_inc$dates))
+###  check dput(as.Date(covid_pred_3_day$dates))
+###  different outputs >> covid_pred_3_day$dates has a date saved with a half day
+###  correct by subtracting 0.5 days
 
-
-#hc_add_series(pokemon, type = "bar", hcaes(x = type_2, group = type_1, y = n))
 ```
 
 ### Previsão do número de novos casos de COVID-19 a 3 dias
 
 ```{r}
 
-
-
-p3<- highchart() %>%
+p3 <- 
+  highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Previsão a 3 dias COVID-19") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -717,29 +731,45 @@ p3<- highchart() %>%
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Novos Casos COVID-19"),min = 0) %>% 
+  # hc_tooltip(
+  #   formatter = highcharter::JS(
+  #     paste0("function () {
+  #           return this.points.reduce(function (s, point) {
+  #               return s + '<br/>' + point.series.name + ': ' +
+  #                   point.y;
+  #           }, '<b>' + this.x + '</b>');
+  #       }")
+  #   ) ,
+  #   shared = TRUE
+  # ) %>%
   hc_tooltip(
     formatter = highcharter::JS(
-      paste0("function () {
-            return this.points.reduce(function (s, point) {
-                return s + '<br/>' + point.series.name + ': ' +
-                    point.y;
-            }, '<b>' + this.x + '</b>');
-        }")
-    ) ,
-    shared = TRUE
-  ) %>%
+      paste0(
+        "function () {
+            return this.series.name + ': ' + this.y;
+        }"
+      )
+    )
+  ) %>% 
 #  hc_add_series(data = covid_pred_3_day$upr_predict,
 #                name = "Limite sup-previsão", 
 #                color = "#fcbba1") %>%
 #  hc_add_series(data = covid_pred_3_day$lwr_predict,
 #                name = "Limite inf-previsão", 
 #                color = "#fcbba1") %>%
+  hc_add_series(data = covid_pred_3_day$obs,
+                name = "Novos casos (observado)",
+                symbol = "circle",
+                fill = "#FFFFFF",
+                color = "#3d7a75", # changed colour hex to accomodate colou blindness- same green scale as fit object
+                type = "scatter"
+                ) %>%
   hc_add_series(data = covid_pred_3_day$fit_fit,
                 name = "Novos casos (modelo)", 
                 color = "#5ab4ac" # changed colour hex to accomodate colou blindness - Purple-Green diverging colour scale
                 ) %>%
   hc_add_series(data = covid_pred_3_day$fit_predict,
-                name = "Novos casos (previsão)", 
+                name = "Novos casos (previsão)",
                 color = "#af8dc3" # changed colour hex to accomodate colou blindness - Purple-Green diverging colour scale
                 ) %>%
   hc_exporting(
@@ -788,15 +818,17 @@ p4<- highchart() %>%
 #    valueDecimals = 1,
 #    shared = TRUE
 #  ) %>%
-      hc_add_series(data = posterior_R_e$fit,
-                name = "Rt", 
-                color = "#e6550d") %>%
-  hc_add_series(posterior_R_e, 
+    hc_add_series(posterior_R_e, 
                 hcaes( low = lwr, high = upr),     
 #                id = "ForecastRange-FL", 
                 type = "arearange", 
                 name = "Incerteza", 
-                color = "#d9d9d9")
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = posterior_R_e$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+### changed the layer order in the chain do that the median estimates is on top
 
 
 p4
@@ -809,7 +841,7 @@ __Previsão__
 Foi utilizado um modelo linear-logarítmico referente aos dados de novos casos reportados:
 
 $$
-log (y) = r *t+b
+log (y) = r * t + b
 $$
 onde:
 
@@ -821,7 +853,7 @@ onde:
 
 - _b_ é o número de casos (escala logarítmica) no início do surto \n
 
-É realizada diariamente uma actualização da previsão com todos os dados reportados disponíveis. A previsão efectuada do número de novos casos abrange a janela tamporal de 3 dias desde o último dia de reporte e actualização dos dados.
+É realizada diariamente uma actualização da previsão com todos os dados reportados disponíveis. A previsão efectuada do número de novos casos abrange a janela temporal de 3 dias desde o último dia de reporte e actualização dos dados.
 
 Os valores de previsão devem ser interpretados face ao número reduzido de dias de observação bem como à aplicação de medidas de âmbito populacional que contrariem os pressupostos do modelo utilizado.
 
@@ -837,15 +869,15 @@ O tempo de duplicação de novos casos é obtido através da taxa de crescimento
 $$
 T_{d} = \frac{ln(2)}{ln(1 + r)}
 $$
-Quanto maior for o valor do tempode duplicação, menor será a velocidade de progressão da transmissão.
+Quanto maior for o valor do tempo de duplicação, menor será a velocidade de progressão da transmissão.
 
 __$R_{t}$__ 
 
 O número reprodutivo no período temporal _t_ ('$R_{t}$') estima o número médio de casos secundários infectados por um caso durante o seu período infeccioso, para o  período de tempo _t_. Sendo assim, este número mede a dinâmica de transmissão de uma infecção num período temporal específico, podendo ser usado como um indicador "instantâneo" da transmissão (velocímetro).
 
-Tal como um velocímetro, $R_{t}$ permite indicar quão rápido decorre a tranmissão (se $R_{t}$ estiver acima de 1, a transmissão está a decorrer a um ritmo elevado e a epidemia está a alargar-se), bem como se esta se encontra em aceleração ou desaceleração, ao longo de um determinado período do tempo (ou seja, se $R_{t}$ se está a afastar ou aproximar de 1, respectivamente).
+Tal como um velocímetro, $R_{t}$ permite indicar quão rápido decorre a transmissão (se $R_{t}$ estiver acima de 1, a transmissão está a decorrer a um ritmo elevado e a epidemia está a alargar-se), bem como se esta se encontra em aceleração ou desaceleração, ao longo de um determinado período de tempo (ou seja, se $R_{t}$ se está a afastar ou aproximar de 1, respectivamente).
 
-O período temporal de cálculo utilizado abrange uma janela temporal de 7 dias. Exemplificando, o valor de $R_{t}$ reportado em 17-03-2020 diz respeito ao período temporal de 7 dias que termina nesse dia (11 a 17 de Março). Este elemento deve ser acutelado na interpretação do valor de $R_{t}$ como sendo reflexo de uma janela de transmissão que decorreu, para este cálculo concreto, nos últimos 7 dias.
+O período temporal de cálculo utilizado abrange uma janela temporal de 7 dias. Exemplificando, o valor de $R_{t}$ reportado em 17-03-2020 diz respeito ao período temporal de 7 dias que termina nesse dia (11 a 17 de Março). Este elemento deve ser acautelado na interpretação do valor de $R_{t}$ como sendo reflexo de uma janela de transmissão que decorreu, para este cálculo concreto, nos últimos 7 dias.
 
 Foi utilizado o método de cálculo de $R_{t}$ de [Cori A., _et. al._](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3816335/). O cálculo deste número requer a definição de uma estimativa do intervalo de série (_serial interval_) - número de dias entre o início de sintomas de um caso e o início de sintomas de um caso secundário do primeiro - para a infecção em estudo. Para o efeito, foram utilizados os valores reportados por [Abbott S., _et. al._](https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html) - média de 4,7 dias (Intervalo de Credibilidade 95% [CrI 95% CrI]: 3,7 - 6,0) e desvio padrão de 2,9 dias (CrI 95% : 1,9 - 4,9)).
 
