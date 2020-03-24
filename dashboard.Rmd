@@ -346,6 +346,22 @@ mapdata <- get_data_from_map(download_map_data("countries/pt/pt-all"))
 
 ### Mapa confirmados 
 
+```{r map-nuts2-region, echo = FALSE, eval = FALSE, include = FALSE}
+# library("viridisLite")
+# 
+# ### get map from api
+# map_api <- "https://public.opendatasoft.com/api/records/1.0/search/?dataset=osm-export-admin-level-4-pl-region&lang=pt&rows=10&facet=name&facet=region_type"
+# 
+# ### alternatively, load directly from repo
+# pt_geojson <- "datasets/pt_geojson/osm-export-admin-level-4-pl-region.geojson"
+# 
+# map_pt_nuts2 <- 
+#   jsonlite::fromJSON(txt = pt_geojson, simplifyVector = FALSE) %>% 
+#   geojsonio::as.json()
+#   
+```
+
+
 ```{r}
 library("viridisLite")
 
