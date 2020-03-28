@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/585775/49639f7b30074520aaa9fc9de66c68e0
+bundleId: https://api.rpubs.com/api/v1/document/585775/49639f7b30074520aaa9fc9de66c68e0
+url: http://rpubs.com/aperalta/585775
+when: 1584448027.1425
