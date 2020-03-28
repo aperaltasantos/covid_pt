@@ -390,6 +390,8 @@ library("viridisLite")
 
 ```
 
+
+
 ### Recuperados
 
 ```{r}
