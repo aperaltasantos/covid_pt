@@ -1,0 +1,520 @@
+---
+title: "Forecasting de camas de intensivos"
+author: "Aperalta Santos e Luis Alves de Sousa"
+date: "`r format(Sys.time(), '%A %d %B %Y')`"
+output:
+  html_document:
+---
+
+```{r}
+#Based on work https://github.com/thibautjombart/covid19_bed_occupancy 
+# Forecasting bed occupancy from current admissions
+# Thibaut Jombart, Emily S Nightingale, Mark Jit, Olivier le Polain de Waroux, Gwenan M Knight, Stefan Flasche, Rosalind Eggo, Adam J Kucharski, Carl A.B. Pearson, Simon R Procter, CMMID nCov working group & W John Edmunds.
+
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      collapse = TRUE,
+                      fig.width = 8,
+                      fig.height = 6,
+                      dpi = 150,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+
+# Introduction
+
+## What's in this document
+
+We provide a model for forecasting bed occupancy of COVID-19 patients,
+generalising our [initial post](https://cmmid.github.io/topics/covid19/current-patterns-transmission/ICU-projections.html) 
+on critical bed capacity in England. The model currently
+accommodates *normal hospitalisation* as well as *critical care*, for which
+different distributions of the length of stay are provided. The model can be
+used at any geographic scale, e.g. a single hospital, a state, a country.
+
+
+This document provides an outline of the model and its implementation. Its code
+served as a basis for the app hosted in the same github repository (se `app/`
+folder).
+
+
+## Rationale
+
+This report outlines a model for forecasting bed occupancy from recent data on
+admissions. In short, the process is as follows:
+
+1. use a recent number of admissions at a given date as a point of reference
+
+2. simulate growth in admissions from this point of reference using a given
+   doubling time (with user-specified upper and lower bounds), feeding into a
+   log-linear model
+   
+3. for each simulated admission, simulate the duration of hospitalisation from
+   recent estimate of the duration of hospitalisation; it may be required to
+   repeat this process several times (e.g. 30-50) for lower numbers of
+   admissions, to integrate the uncertainty relating to duration of stay, the
+   default number of replicates used is 10
+   
+4. derive daily numbers of bed required
+
+
+
+## Caveats
+
+* The current model assumes exponential growth
+
+* Default distributions for the duration of stay are provided by matching results of 
+[Zhou et al 2020](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30566-3/fulltext). 
+These distributions may need changing under some settings.
+
+
+
+## Licensing
+
+* Copyright: Thibaut Jombart
+* License: [CC-BY](https://creativecommons.org/licenses/by/4.0/)
+
+
+
+
+
+<!-- ======================================================= -->
+<!-- ======================================================= -->
+<!-- ======================================================= -->
+
+# Data preparation {.tabset .tabset-fade .tabset-pills}
+
+## Outline
+
+* **Load scripts**: loads libraries and useful scripts used in the analyses; all
+`.R` files contained in `scripts` at the root of the factory are automatically
+loaded
+
+* **Load data**: imports datasets, and may contain some *ad hoc* changes to the
+data such as specific data cleaning (not used in other reports), new variables
+used in the analyses, etc.
+
+
+
+## Load packages
+
+```{r libraries}
+
+library(here)
+library(reportfactory)
+library(incidence)
+library(distcrete)
+library(epitrix)
+library(tidyverse)
+library(projections)
+
+```
+
+
+
+## Load scripts
+
+These scripts will load:
+
+* all local scripts, stored as `.R` filesinside `/scripts/`
+* all global scripts, i.e. stored outside the factory in `../scripts/`
+
+```{r read_scripts}
+
+#rfh_load_scripts()
+
+Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
+
+## projections package
+missing_devel_projections <-
+  !("projections" %in% installed.packages()[, "Package"]) ||
+  packageVersion("projections") < "0.4.1"
+
+if (missing_devel_projections) {
+  remotes::install_github("reconhub/projections")
+}
+
+
+
+## incidence package
+missing_devel_incidence <-
+  !("incidence" %in% installed.packages()[, "Package"]) ||
+  packageVersion("incidence") < "1.7.1"
+
+if (missing_devel_incidence) {
+  remotes::install_github("reconhub/incidence@issue_119")
+}
+
+
+
+## produce only integer breaks
+int_breaks <- function(x, n = 5) {
+  pretty(x, n)[pretty(x, n) %% 1 == 0]
+}
+
+
+## make text bigger on ggplot2 plots
+large_txt <- ggplot2::theme(text = ggplot2::element_text(size = 16),
+                            axis.text = ggplot2::element_text(size = 14))
+smaller_axis_txt <- ggplot2::theme(axis.text = ggplot2::element_text(size = 12))
+
+scale_months <- ggplot2::scale_x_date(breaks = "1 month",
+                                      date_label = format("%d %b %Y"))
+
+
+scale_weeks <- ggplot2::scale_x_date(breaks = "1 week",
+                                     date_label = format("%d %b %Y"))
+
+
+
+## strips for vertical facetting: horizontal labels, nice colors
+custom_vert_facet <- theme(
+    strip.text.y = element_text(size = 12, angle = 0, color = "#6b6b47"),
+    strip.background = element_rect(fill = "#ebebe0", color = "#6b6b47"))
+
+custom_horiz_facet <- theme(
+    strip.text.x = element_text(size = 12, angle = 90, color = "#6b6b47"),
+    strip.background = element_rect(fill = "#ebebe0", color = "#6b6b47"))
+
+## rotate x annotations by 45 degrees
+rotate_x <- theme(axis.text.x = element_text(angle = 45, hjust = 1L))
+
+```
+
+
+
+
+
+
+
+
+<!-- ======================================================= -->
+<!-- ======================================================= -->
+<!-- ======================================================= -->
+
+# Proof of concept {.tabset .tabset-fade .tabset-pills}
+
+## Model description
+
+We aim to estimate the number of currently circulating cases on a
+given day given a number of deaths reported recently. 
+
+The principle of the estimation is:
+
+1. augment the number of admissions using the reporting; currently this is just 
+$n_{aug} = n_{reported} / reporting$
+
+2. use a log-linear model, parametrised through the doubling time, to simulate epidemic
+   trajectories; see for instance 
+   [Jombart et al 2020](https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.2.1900735); this is implemented by the RECON package [projections](http://www.repidemicsconsortium.org/projections/)
+   
+3. for each admission, simulate duration of hospitalisation from provided distribution
+
+4. count beds for each day and simulation
+
+
+ 
+
+
+## Parameters of the model
+
+This section contain information on the various parameters. We use these
+data to generate distribution, with discretisation when needed.
+
+* **Duration of hospitalisation**:
+    + non critical care: discretised Weibull(shape:2, scale:13) to aim for a median of 11
+      days, IQR 7-14
+    + critical care: discretised Weibull(shape:2, scale:10) to aim for a median of 8
+      days, IQR 4-12
+    + See table 2 in 
+	[source](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30566-3/fulltext)
+
+```{r los}
+
+## los = "length of stay"
+## los_critical for critical care
+los_critical <- distcrete("weibull", shape = 2, scale = 10, w = 0, interval = 1)
+
+## los_normal for non critical care hospitalisation
+los_normal <- distcrete("weibull", shape = 2, scale = 13, w = 0, interval = 1)
+
+## ## auxiliary function for manual exploration of distributions
+## try <- function(shape, scale) {
+##   x <- distcrete("weibull", shape = shape, scale = scale, w = 0, interval = 1)$r(1e5)
+##   hist(x)
+##   summary(x)
+## }
+
+```
+
+
+
+## Duration of hospitalisation
+
+We visualise the probabiliy mass functions for the first 50 days:
+
+```{r los_plot}
+
+plot(0:50, los_normal$d(0:50),
+     type = "h", col = "#e6b800", lwd = 8, lend = 2,
+     xlab = "Days in hospital",
+     ylab = "Probability",
+     main = "Duration of non-critical hospitalisation",
+     cex.lab = 1.3, cex.main = 1.5)
+
+
+plot(0:50, los_critical$d(0:50),
+     type = "h", col = "#ff944d", lwd = 8, lend = 2,
+     xlab = "Days in hospital",
+     ylab = "Probability",
+     main = "Duration of critical care hospitalisation",
+     cex.lab = 1.3, cex.main = 1.5)
+
+```
+
+
+
+
+## Illustration
+
+As an illustration, we forecast bed occupancy for 2 weeks in a hypothetical location which
+would have reported 65 admissions on the current day, with an assumed reporting
+of 80% and an assumed R of 2.
+
+```{r illustration}
+
+## input parameters
+doubling <- # We use our doubling dates based on our log linear model
+doubling_error <- # We use our doubling dates based on our log linear model
+reporting <- 0.8
+date_start <- Sys.Date() # date of reference
+n_start <- 64 # admissions on date_start
+duration <- 10 # days of forecasting
+last_date <- date_start + duration
+los_r <- los_critical$r
+
+
+## custom graphics
+scale_lines <- scale_linetype_manual("", values = c(low = 2, mean = 1, high = 2))
+
+#' @param date_start A single `Date` used as a starting point to model future
+#'   COVID-19 admissions
+#'
+#' @param n_start The number of COVID-19 admissions reported on `date_start`
+#'
+#' @param doubling The doubling time, in days.
+#' 
+#' @param doubling_error The uncertainty associated to the doubling time, in
+#'   days. Upper and lower bounds of the forecast will be `doubling +/-
+#'   doubling_error`.
+#'
+#' @param reporting The proportion of admissions reported; defaults to 1,
+#'   i.e. all admissions are reported.
+#'
+#' @param long A `logical` indicating whether output should have a `long`
+#'   format, e.g. for easier plotting with `ggplot2`.
+ 
+predict_admissions <- function(date_start,
+                               n_start,
+                               doubling,
+                               doubling_error,
+                               duration,
+                               reporting = 1,
+                               long = FALSE) {
+
+  ## Sanity checks
+  if (!is.finite(n_start)) stop("`n_start` is not a number")
+  if (n_start < 1) stop("`n_start` must be >= 1")
+
+  if (!is.finite(doubling)) stop("`doubling` is not a number")
+  if (!is.finite(doubling_error)) stop("`doubling_error` is not a number")
+
+  if (!is.finite(duration)) stop("`duration` is not a number")
+  if (duration < 1) stop("`duration` must be >= 1")
+
+  if (!is.finite(reporting)) stop("`reporting` is not a number")
+  if (reporting <= 0) stop("`reporting` must be > 0")
+  if (reporting > 1) stop("`reporting` must be <= 1")
+  
+
+  ## Outline:
+
+  ## This function calculates future admissions using an exponential model. The
+  ## growth rate is calculated from the doubling time, using: r = log(2) / d
+  
+  ## future dates and initial conditions
+  future_dates <- seq(date_start, length.out = duration, by = 1L)
+  initial_admissions <- round(n_start / reporting)
+  
+  # Load the calculated Rt
+  posterior_R_e_last<-posterior_R_t %>% 
+  filter(date_point==last(date_point))
+
+   x1 <- posterior_R_e_last$R_e_median
+
+  ## calculate growth rate from doubling times
+  r <- log(x1) / covid_r_inc_model$info$doubling
+  r_low <- log(2.06) / covid_r_inc_model$info$doubling.conf[1]
+  r_high <- log(2.06) / covid_r_inc_model$info$doubling.conf[2]
+
+  ## calculate future admissions
+  future_admissions <- initial_admissions * exp(r * (seq_len(duration) - 1))
+  future_admissions_low <- initial_admissions * exp(r_low * (seq_len(duration) - 1))
+  future_admissions_high <- initial_admissions * exp(r_high * (seq_len(duration) - 1))
+  future_admissions <- round(future_admissions)
+  future_admissions_low <- round(future_admissions_low)
+  future_admissions_high <- round(future_admissions_high)
+
+  ## build output
+  out <- data.frame(date = future_dates,
+                    mean = future_admissions,
+                    low = future_admissions_low,
+                    high = future_admissions_high)
+
+  if (long) {
+    out <- tidyr::pivot_longer(out, -1,
+                               names_to = "prediction",
+                               values_to = "n")
+    out$prediction <- factor(out$prediction,
+                             levels = c("low", "mean", "high"))
+  }
+  out
+}
+
+
+
+## try the function
+proj_admissions <- predict_admissions(date_start,
+                                      n_start,
+                                      doubling,
+                                      doubling_error,
+                                      duration,
+                                      reporting,
+                                      long = TRUE)
+
+## check outputs and make plots
+proj_admissions
+
+proj_admissions %>%
+  ggplot(aes(x = date, y = n)) +
+  geom_line(aes(linetype = prediction)) +
+  scale_lines +
+  theme_bw() +
+ # large_txt +
+ # rotate_x +
+  scale_x_date(date_labels = "%d %b %Y") +
+    labs(y = "Daily admissions",
+         title = "Forecast of daily admissions")
+
+
+#' Simulator for projecting bed occupancy
+#'
+#' @param dates A vector of dates, ideally as `Date` but `integer` should work too.
+#'
+#' @param n_admissions An `integer` vector giving the number of admissions
+#'   predicted for each date in `dates`.
+#'
+#' @param r_los A `function` with a single parameter `n` returning `n` values of
+#'   lenth of hospital stay (LoS). Ideally, this should come from a discrete
+#'   random distribution, such as `rexp` or any `distcrete` object.
+#'
+#' @param n_sim The number of times duration of hospitalisation is simulated for
+#'   each admission. Defaults to 10. Only relevant for low (<30) numbers of
+#'   initial admissions, in which case it helps accounting for the uncertainty
+#'   in LoS.
+
+project_beds <- function(dates, n_admissions, r_los, n_sim = 10) {
+
+  ## sanity checks
+  if (!length(dates)) stop("`dates` is empty")
+
+  if (!is.finite(n_admissions)) stop("`n_admissions` is not a number")
+  if (n_admissions < 1) stop("`n_admissions` must be >= 1")
+
+  if (inherits(r_los, "distcrete")) {
+    r_los <- r_los$r
+  }
+  if (!is.function(r_los)) stop("`r_los` must be a function")
+
+  if (!is.finite(n_sim)) stop("`n_sim` is not a number")
+  if (n_sim < 1) stop("`n_sim` must be >= 1")
+
+  
+  ## Outline:
+
+  ## We take a vector of dates and incidence of admissions, and turn this into a
+  ## vector of admission dates, whose length is sum(n_admissions). We will
+  ## simulate for each date of admission a duration of stay, and a corresponding
+  ## vector of dates at which this case occupies a bed. Used beds are then
+  ## counted (summing up all cases) for each day. To account for stochasticity
+  ## in duration of stay, this process can be replicated `n_sim` times,
+  ## resulting in `n_sim` predictions of bed needs over time.
+
+  
+  admission_dates <- rep(dates, n_admissions)
+  n <- length(admission_dates)
+  last_date <- max(dates)
+  out <- vector(n_sim, mode = "list")
+  
+
+  for (j in seq_len(n_sim)) {
+    los <- r_los(n)
+    list_dates_beds <- lapply(seq_len(n),
+                              function(i) seq(admission_dates[i],
+                                              length.out = los[i],
+                                              by = 1L))
+    ## Note: unlist() doesn't work with Date objects
+    dates_beds <- do.call(c, list_dates_beds)
+    beds_days <- incidence::incidence(dates_beds)
+    if (!is.null(last_date)) {
+      to_keep <- incidence::get_dates(beds_days) <= last_date
+      beds_days <- beds_days[to_keep, ]
+    }
+
+    out[[j]] <- projections::build_projections(
+                                 x = beds_days$counts,
+                                 dates = incidence::get_dates(beds_days))
+  }
+
+  projections::merge_projections(out)
+ 
+}
+
+
+
+## split predicted admissions by type of prediction (low / mean / high)
+list_proj_admissions <- split(proj_admissions, proj_admissions$prediction)
+
+
+## PROBLEM | Cant find this e functions
+## simulate beds for each epicurve
+list_proj_beds <- lapply(list_proj_admissions,
+                         function(e)
+                           project_beds(e$date,
+                                        e$n,
+                                        los_normal$r))
+
+
+## merge results
+beds <- merge_projections(list_proj_beds)
+
+## plot results
+plot(beds,
+     quantiles = c(.025, .5),
+     ribbon = TRUE) +
+  theme_bw() +
+  large_txt +
+  scale_x_date(date_label = "%d %b %y") +
+  rotate_x +
+  labs(title = "Predicted bed occupancy",
+       x = NULL,
+       y = "Daily numbers of beds")
+
+```
+
+
+

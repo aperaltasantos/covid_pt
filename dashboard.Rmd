@@ -506,6 +506,15 @@ posterior_R_t <-
     ) %>% 
     reduce(bind_rows)
 
+write_csv(
+  posterior_R_t,
+  here::here(
+    "datasets", 
+     paste(
+       format(Sys.time(), "%d_%b_%Y"),
+       "posterior_R_t.csv")
+  )
+)
 #plot_posterior_R_e <- 
 #    ggplot(data = posterior_R_e, mapping = aes(x = date_point, y = R_e_median)) + 
 #    geom_line(alpha = 0.3, size = 1.2) + 
