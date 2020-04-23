@@ -100,8 +100,7 @@ covid_pt_r <- covid_pt %>%
 
 ```
 
-Previsão da evolução
-===================================== 
+
 
 ```{r estim-Re-uncertain-si}
 library(purrr)
@@ -171,7 +170,9 @@ posterior_R_t <-
 
 ```
 
-### Número reprodutivo diário $R_{t}$
+# Número reprodutivo diário $R_{t}$
+
+## Número reprodutivo diário $R_{t}$ Portugal
 
 ```{r}
 
@@ -179,8 +180,7 @@ posterior_R_e <- posterior_R_t %>%
   mutate(fit = round(R_e_median, 2),
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
-
-p4<- highchart() %>%
+rt_portugal <- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -205,8 +205,10 @@ p4<- highchart() %>%
                 name = "Rt", 
                 color = "#e6550d")
 
-p4
+rt_portugal
 ````
+
+## Número reprodutivo diário $R_{t}$ ARS Norte
 
 ```{r}
 Rt_nonparam_si <- 
@@ -259,7 +261,7 @@ posterior_R_e <- posterior_R_t %>%
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
 
-p4<- highchart() %>%
+rt_ars_norte<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS Norte - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -284,8 +286,10 @@ p4<- highchart() %>%
                 name = "Rt", 
                 color = "#e6550d")
 
-p4
+rt_ars_norte
 ````
+
+## Número reprodutivo diário $R_{t}$ ARS Centro
 
 ```{r}
 Rt_nonparam_si <- 
@@ -338,7 +342,7 @@ posterior_R_e <- posterior_R_t %>%
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
 
-p4<- highchart() %>%
+rt_ars_centro<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS Centro - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -363,8 +367,11 @@ p4<- highchart() %>%
                 name = "Rt", 
                 color = "#e6550d")
 
-p4
+rt_ars_centro
 ````
+
+## Número reprodutivo diário $R_{t}$ ARS Lisboa e Vale do Tejo
+
 
 ```{r}
 Rt_nonparam_si <- 
@@ -417,7 +424,7 @@ posterior_R_e <- posterior_R_t %>%
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
 
-p4<- highchart() %>%
+rt_ars_lvt<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS LVT - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -442,8 +449,10 @@ p4<- highchart() %>%
                 name = "Rt", 
                 color = "#e6550d")
 
-p4
+rt_ars_lvt
 ````
+
+## Número reprodutivo diário $R_{t}$ ARS Alentejo
 
 ```{r}
 Rt_nonparam_si <- 
@@ -496,7 +505,7 @@ posterior_R_e <- posterior_R_t %>%
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
 
-p4<- highchart() %>%
+rt_ars_alentejo<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS Alentejo - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -521,9 +530,10 @@ p4<- highchart() %>%
                 name = "Rt", 
                 color = "#e6550d")
 
-p4
+rt_ars_alentejo
 ````
 
+## Número reprodutivo diário $R_{t}$ ARS Algarve
 
 ```{r}
 Rt_nonparam_si <- 
@@ -576,7 +586,7 @@ posterior_R_e <- posterior_R_t %>%
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
 
-p4<- highchart() %>%
+rt_ars_algarve<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS Algarve - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -601,8 +611,10 @@ p4<- highchart() %>%
                 name = "Rt", 
                 color = "#e6550d")
 
-p4
+rt_ars_algarve
 ````
+
+## Número reprodutivo diário $R_{t}$ Açores
 
 ```{r}
 Rt_nonparam_si <- 
@@ -655,7 +667,7 @@ posterior_R_e <- posterior_R_t %>%
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
 
-p4<- highchart() %>%
+rt_ars_acores<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt  Acores - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -680,8 +692,10 @@ p4<- highchart() %>%
                 name = "Rt", 
                 color = "#e6550d")
 
-p4
+rt_ars_acores
 ````
+
+## Número reprodutivo diário $R_{t}$ Mardeira
 
 ```{r}
 Rt_nonparam_si <- 
@@ -734,7 +748,7 @@ posterior_R_e <- posterior_R_t %>%
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
 
-p4<- highchart() %>%
+rt_ars_madeira<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt Madeira - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
@@ -759,400 +773,6 @@ p4<- highchart() %>%
                 name = "Rt", 
                 color = "#e6550d")
 
-p4
+rt_ars_madeira
 ````
-
-```{r}
-## Calculate Effective R (R_e or R_t)
-## Authors A. Peralta-santos 
-## Based on https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html
-
-###Methods
-
-#Time-varying effective reproduction estimates were made with a 7-day sliding window using EpiEstim [4,5] adjusted for imported cases and assuming an uncertain serial interval with a mean of 4.7 days (95% CrI: 3.7, 6.0) and a standard deviation of 2.9 days (95% CrI: 1.9, 4.9) [6].
-#Time-varying estimates of the doubling time were made with a 7-day sliding window by iteratively fitting an exponential regression model.
-
-### R_e calculation - Parametric SI method for 
-### Serial Interval - mean = 4.7 // sd = 2.9
-res_parametric_si <- 
-    estimate_R(
-        covid_r$Confirmados_var, 
-        method ="parametric_si",
-        config = make_config(
-            list(
-                mean_si = 4.7, 
-                std_si = 2.9
-                )
-            )
-    )
-
-# plot(res_parametric_si, legend = FALSE)
-
-r_prt <- as.data.frame(res_parametric_si$R)
-
-# r_prt <- left_join(covid_r, r_prt, by="t_start")
-
-### join by t-end
-r_prt <- 
-  left_join(
-    x = covid_r, 
-    y = dplyr::select(
-      r_prt,
-      c("t_end", "Mean(R)", "Quantile.0.025(R)", "Quantile.0.975(R)")
-      ), 
-    by = c("t_start" = "t_end")
-    )
-
-r_prt <- 
-    r_prt %>% 
-    rename(
-        r_efect = "Mean(R)",
-        r_low = "Quantile.0.025(R)",
-        r_high = "Quantile.0.975(R)"
-    )
-
-```
-
-
-```{r}
-p1 <- 
-    ggplot() +
-  
-    geom_line(
-        data = r_prt,                 
-        aes(
-            x = Data,               
-            y = r_efect
-        ),
-        alpha = 0.7,
-        size = 1
-        ) +
-  
-    geom_hline(
-        yintercept=1, 
-        linetype="dashed", 
-        color = "black"
-    ) +
-  
-    geom_hline(
-        yintercept=0, 
-        color = "black"
-    ) +
-  
-    geom_ribbon(
-        data = r_prt, 
-        aes(
-            ymin = r_low, 
-            ymax = r_high,
-            x = Data
-        ), 
-        alpha=0.5,
-        fill = "grey70"
-    ) +
-  
-  scale_x_date(
-      breaks = "2 day", 
-      date_labels = "%b %d"
-      ) +
-  
-  labs(
-      title = "COVID-19 Effective reproduction",
-      subtitle = "Portugal",
-      y = "Effective reproduction n",
-      x = "", 
-      caption = "Fonte: Dados da DGS |Modelo dos autores"
-      ) +
-  
-    theme_minimal() +
-    
-    theme(
-        panel.grid.minor = element_blank(),
-        # panel.grid.major.y = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        axis.text = element_text(face = "bold", size = 8, color = "black"),
-        axis.title = element_text(size = 10),
-        plot.title = element_text(face = "bold", size = 12),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "bottom"
-        )
-
-p1
-```
-
-
-```{r estim-Re-uncertain-si}
-### R_e calculation - Uncertainty method
-### Serial Interval
-### -- mean 4.7 (95% CrI: 3.7, 6.0)
-### -- sd 2.9 (95% CrI: 1.9, 4.9)
-sens_configs <- 
-    make_config(
-        list(
-            mean_si = 4.7, std_mean_si = 0.7,
-            min_mean_si = 3.7, max_mean_si = 6.0,
-            std_si = 2.9, std_std_si = 0.5,
-            min_std_si = 1.9, max_std_si = 4.9,
-            n1 = 1000,
-            n2 = 100,
-            seed = 123456789
-        )
-    )
-
-Rt_nonparam_si <- 
-    estimate_R(
-        covid_r$Confirmados_var, 
-        method = "uncertain_si",
-        config = sens_configs
-        )
-
-### inspect R_e estimate
-plot(Rt_nonparam_si, legend = FALSE)
-
-## Posterio sample R_e estimate
-sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
-
-posterior_R_t <- 
-    map(
-        .x = sample_windows,
-        .f = function(x) {
-            
-            posterior_sample_obj <- 
-                sample_posterior_R(
-                    R = Rt_nonparam_si,
-                    n = 1000, 
-                    window = x
-                )
-            
-            posterior_sample_estim <- 
-                data.frame(
-                    window_index = x,
-                    window_t_start = Rt_nonparam_si$R$t_start[x],
-                    window_t_end = Rt_nonparam_si$R$t_end[x],
-                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
-                    R_e_median = median(posterior_sample_obj),
-                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
-                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
-                )
-            
-            return(posterior_sample_estim)
-            
-        }
-    ) %>% 
-    reduce(bind_rows)
-
-plot_posterior_R_t <- 
-    ggplot(data = posterior_R_t, mapping = aes(x = date_point, y = R_e_median)) + 
-    geom_line(alpha = 0.3, size = 1.2) + 
-    geom_ribbon(mapping = aes(ymin = R_e_q0025, ymax = R_e_q0975), alpha = 0.1) + 
-    geom_smooth(se = FALSE) + 
-    scale_x_date(
-      date_breaks = "1 day",
-      limits = c(min(covid_r$Data), max(posterior_R_t$date_point))
-      ) + 
-    scale_y_continuous(
-        breaks = 0:ceiling(max(posterior_R_t$R_e_q0975)),
-        limits = c(0, NA)
-        ) + 
-    geom_hline(yintercept = 1) + 
-    theme_classic()
-
-plot_posterior_R_t
-
-```
-
-
-```{r estim-Re-uncertain-si-imported}
-### the model can account for imported cases at the beginning of the outbreak
-### perhaps consider the first 2 ??? or 4 on the first two days
-### if so, it will most likely decrease the initial R_e but increase it afterwards due to undiagnosed community transmission
-
-```
-
-
-```{r log-linear-growth}
-covid_r_inc <- 
-    rep(
-        x = unlist(covid_r$Data), 
-        times = unlist(covid_r$Confirmados_var)
-        ) %>% 
-    incidence(
-        dates = .,
-        interval = "1 day",
-        standard = TRUE,
-        first_date = min(covid_r$Data),
-        last_date = max(covid_r$Data)
-        )
-
-### find peak for adjustment of trend on model by the split argument    
-covid_r_inc_peak <- find_peak(covid_r_inc)
-
-### fit log-linear model
-### fits two exponential models to incidence data, 
-### of the form: log(y) = r * t + b , where
-### 'y' is the incidence,
-### 't' is time (in days)
-### 'r' is the growth rate
-### 'b' is the origin
-### function fit will fit one model by default, 
-### but will fit two models on either side of a splitting date 
-### (typically the peak of the epidemic) if the argument split is provided
-covid_r_inc_model <- 
-    fit(
-        x = covid_r_inc,
-        # split = covid_r_inc_peak,
-        NULL
-    )
-
-# check object entirely
-covid_r_inc_model
-
-# (daily growth rate)
-covid_r_inc_model$info$r
-covid_r_inc_model$info$r.conf
-
-# (doubling time in days)
-covid_r_inc_model$info$doubling
-covid_r_inc_model$info$doubling.conf
-
-# incidence predictions (fitted vs observed data)
-plot(covid_r_inc, fit = covid_r_inc_model)
-```
-
-
-```{r 3-day-prediction-log-linear-growth}
-### predict number cases next 3 days maintaing current exponential growth
-### model elements for forecast are in covid_r_inc_model$model
-### structure of dataset for prediction can be checked with
-# head(covid_r_inc_model$info$pred)
-### must provide x-axis data as a mid-point from t_0
-### create x vector for forecasting on the next 3 days (reasonable amount time)
-case_pred_3_day <- 
-    data.frame(
-        dates = covid_r_inc_model$info$pred$dates[nrow(covid_r_inc_model$info$pred)] + 1:3,
-        dates.x = covid_r_inc_model$info$pred$dates.x[nrow(covid_r_inc_model$info$pred)] + 1:3
-    )
-
-n_case_pred_3_day <- 
-    predict(
-        object = covid_r_inc_model$model, 
-        newdata = case_pred_3_day, 
-        se.fit = TRUE, 
-        # type = "response",
-        interval = "prediction"
-        )
-
-### log-linear model
-### predictions are in log scale
-### anti-log to get final count predictions
-n_case_pred_3_day <- 
-    exp(x = n_case_pred_3_day[["fit"]])
-
-case_pred_3_day <- 
-    dplyr::bind_cols(
-        case_pred_3_day,
-        as.data.frame(n_case_pred_3_day)
-        ) %>% 
-    mutate(
-        type = "predict"
-    )
-
-# case_obs_fit <- 
-#     covid_r_inc_model$info$pred %>% 
-#     mutate(
-#         type = "fit"
-#     )
-
-### final prediction
-covid_pred_3_day <- 
-    bind_rows(
-        case_obs_fit,
-        case_pred_3_day
-    )
-
-### plot not perfect
-### points and lines not coinciding on the x axis with the geom_col
-plot_pred_3_day <- 
-    ggplot() +
-    # geom_col(
-    #     data = covid_r, 
-    #     mapping = aes(x = Data, y = Confirmados_var), 
-    #     fill = "grey90"
-    #     ) + 
-    geom_point(
-        data = covid_pred_3_day, 
-        mapping = aes(x = dates, y = fit, colour = type), 
-        alpha = 0.7, 
-        size = 1.5
-        ) +
-    geom_line(
-        data = covid_pred_3_day, 
-        mapping = aes(x = dates, y = fit, colour = type), 
-        alpha = 0.7, 
-        size = 1.5
-        ) + 
-    geom_ribbon(
-        data = covid_pred_3_day, 
-        mapping = aes(x = dates, ymin = lwr, ymax = upr, fill = type), 
-        alpha = 0.25
-        ) +
-    scale_x_date(breaks = "1 day") + 
-    scale_y_continuous(
-        limits = c(0, max(covid_pred_3_day$upr)), 
-        breaks = pretty(covid_pred_3_day$upr),
-        labels = pretty(covid_pred_3_day$upr), 
-        name = "Medida"
-        ) +
-    theme_classic() + 
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    labs(
-        y = "Casos (n)", 
-        x = "Data (dias)", 
-        fill = "Medida"
-            )
-
-### display plot
-plot_pred_3_day
-
-```
-
-
-
-```{r lambda-overall-infectivity}
-### computes the overall infectivity (lambda) due to previously infected individuals
-### λ_t = ∑_{k=1}^{t-1}I_{t-k}w_k 
-lambda_covid_pt <- 
-    overall_infectivity(
-        incid = data.frame(I = covid_r_inc$counts), 
-        si_distr = discr_si(k = c(100, 1:100), mu = 4.7, sigma = 2.9)
-        )
-
-plot(lambda_covid_pt)
-
-```
-
-```{r}
-
-covid_r<-covid_pt  %>%
-  group_by(epiweek) %>%
-  summarise(
-    incidence=sum(Confirmados_var)
-  ) %>%
-  filter(
-    epiweek>6
-  )
-
-covid_r<-covid_pt  %>%
-  select(
-    Data,Confirmados_var
-  )  %>%
-  filter(
-    Data>as.Date("2020-02-28")
-  ) %>%
-  dplyr::mutate(
-    t_start = dplyr::row_number() %>% as.numeric(),
-    t_end = t_start + 6
-    )
-
-```
 
