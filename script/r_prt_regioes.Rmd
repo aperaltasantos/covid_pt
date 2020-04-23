@@ -1,12 +1,29 @@
 ---
-title: "r_covid"
-author: "Peralta santos"
+title: "Número reprodutivo diário Portugal e regioes"
+author: "ANSP "
 date: "3/13/2020"
 output: html_document
 editor_options: 
   chunk_output_type: console
 ---
 
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = FALSE,
+  eval = TRUE
+  )
+
+set.seed(1) # Set the seed is important for getting reproducible reports 
+## Clean the envorment 
+rm(list=ls())
+options(scipen=4)
+#  html_document:
+#    toc: TRUE
+#    toc_depth: 2
+```
 
 ```{r}
 
