@@ -11,36 +11,18 @@ editor_options:
 ```{r}
 
 library(EpiEstim)
-library(tidyr)
-library(readr)
-library(dplyr)
-library(ggplot2)
-library(forcats)
-library(lubridate)
-library(googlesheets)
-require(RCurl)
-library(viridis)
-library(flexdashboard)
-#library(epuRate)
-library(here)
-library(rjson)
-library(jsonlite)
-library(RCurl)
+library(tidyverse)
+
 library(highcharter)
-library(here)
+
 library(incidence)
-library(purrr)
-library(magrittr)
+
 ```
 
-```{r}
-u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?output=csv"
-tc <- getURL(u, ssl.verifypeer=FALSE)
-covid_pt <- read.csv(textConnection(tc))
-```
+
 
 ```{r}
-covid_pt<- read.csv("datasets/data.csv")
+covid_pt<- read_csv("data.csv")
 ```
 
 
@@ -90,6 +72,11 @@ covid_pt <- mutate(covid_pt,
                                         order_by = Data),
                    confirmados_var_madeira=confirmados_madeira-confirmados_lag_madeira,
                    )
+
+
+# Madeira has 2 values of negative incidence, we should change it to zero
+
+covid_pt$confirmados_var_madeira <- if_else(covid_pt$confirmados_var_madeira<0, 0, covid_pt$confirmados_var_madeira)
                    
 covid_pt_r <- covid_pt %>%
   select(
@@ -184,7 +171,7 @@ rt_portugal <- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
@@ -265,7 +252,7 @@ rt_ars_norte<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS Norte - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
@@ -346,7 +333,7 @@ rt_ars_centro<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS Centro - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
@@ -428,7 +415,7 @@ rt_ars_lvt<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS LVT - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
@@ -509,7 +496,7 @@ rt_ars_alentejo<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS Alentejo - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
@@ -590,7 +577,7 @@ rt_ars_algarve<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt ARS Algarve - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
@@ -671,7 +658,7 @@ rt_ars_acores<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt  Acores - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
@@ -698,6 +685,7 @@ rt_ars_acores
 ## Número reprodutivo diário $R_{t}$ Mardeira
 
 ```{r}
+
 Rt_nonparam_si <- 
     estimate_R(
         covid_r$confirmados_var_madeira, 
@@ -752,7 +740,7 @@ rt_ars_madeira<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt Madeira - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
            title = list(enabled = FALSE)) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
