@@ -1,0 +1,953 @@
+---
+title: "Número reprodutivo diário Portugal e regioes"
+author: "ANSP "
+date: "3/13/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = FALSE,
+  eval = TRUE
+  )
+set.seed(1) # Set the seed is important for getting reproducible reports 
+## Clean the envorment 
+rm(list=ls())
+options(scipen=4)
+
+```
+
+```{r}
+library(EpiEstim)
+library(tidyverse)
+library(highcharter)
+library(incidence)
+```
+
+
+
+```{r}
+covid_pt<- read_csv("script/data.csv")
+```
+
+
+```{r}
+covid_pt$Data <- as.Date(covid_pt$data,
+                         "%d-%m-%Y"
+                         )
+
+
+covid_pt <- mutate(covid_pt, 
+                   confirmados_lag = lag(x = confirmados, 
+                                        n = 1, 
+                                        order_by = Data),
+                   confirmados_var=confirmados-confirmados_lag,
+                   
+                   confirmados_lag_n = lag(x = confirmados_arsnorte, 
+                                        n = 1, 
+                                        order_by = Data),
+                   confirmados_var_norte=confirmados_arsnorte-confirmados_lag_n,
+
+                   confirmados_lag_centro = lag(x = confirmados_arscentro, 
+                                        n = 1, 
+                                        order_by = Data),
+                   confirmados_var_centro=confirmados_arscentro-confirmados_lag_centro,                   
+
+                   confirmados_lag_lvt = lag(x = confirmados_arslvt, 
+                                        n = 1, 
+                                        order_by = Data),
+                   confirmados_var_lvt=confirmados_arslvt-confirmados_lag_lvt, 
+                   
+                   confirmados_lag_alentejo = lag(x = confirmados_arsalentejo, 
+                                        n = 1, 
+                                        order_by = Data),
+                   confirmados_var_alentejo=confirmados_arsalentejo-confirmados_lag_alentejo, 
+                   
+                   confirmados_lag_algarve = lag(x = confirmados_arsalgarve, 
+                                        n = 1, 
+                                        order_by = Data),
+                   confirmados_var_algarve=confirmados_arsalgarve-confirmados_lag_algarve, 
+                   
+                   confirmados_lag_acores = lag(x = confirmados_acores, 
+                                        n = 1, 
+                                        order_by = Data),
+                   confirmados_var_acores=confirmados_acores-confirmados_lag_acores, 
+
+                   confirmados_lag_madeira = lag(x = confirmados_madeira, 
+                                        n = 1, 
+                                        order_by = Data),
+                   confirmados_var_madeira=confirmados_madeira-confirmados_lag_madeira,
+                   )
+
+
+# Madeira has 2 values of negative incidence, we should change it to zero
+
+covid_pt$confirmados_var_madeira <- if_else(covid_pt$confirmados_var_madeira<0, 0, covid_pt$confirmados_var_madeira)
+                   
+covid_pt_r <- covid_pt %>%
+  select(
+    Data, confirmados_var, confirmados_var_norte, confirmados_var_centro, confirmados_var_lvt, confirmados_var_alentejo, confirmados_var_algarve, confirmados_var_acores, confirmados_var_madeira
+    )
+
+
+
+```
+
+
+
+```{r estim-Re-uncertain-si}
+
+
+library(purrr)
+library(incidence)
+covid_r<-covid_pt_r  %>%
+  filter(
+    Data>as.Date("2020-02-28")
+  ) %>%
+  dplyr::mutate(t_start = dplyr::row_number())
+### R_e calculation - Uncertainty method
+### Serial Interval
+### -- mean 4.7 (95% CrI: 3.7, 6.0)
+### -- sd 2.9 (95% CrI: 1.9, 4.9)
+sens_configs <- 
+    make_config(
+        list(
+            mean_si = 4.7, std_mean_si = 0.7,
+            min_mean_si = 3.7, max_mean_si = 6.0,
+            std_si = 2.9, std_std_si = 0.5,
+            min_std_si = 1.9, max_std_si = 4.9,
+            n1 = 1000,
+            n2 = 100,
+            seed = 123456789
+        )
+    )
+
+Rt_nonparam_si <- 
+    estimate_R(
+        covid_r$confirmados_var, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Rt_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+R_t_pt <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+
+```
+
+```{r eval=FALSE, include=FALSE}
+posterior_R_e <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2))
+
+posterior_R_tlast<-posterior_R_e %>% 
+  filter(Data==last(Data))
+
+highchart() %>% 
+  hc_chart(type = "bar") %>% 
+  hc_add_series(posterior_R_tlast, "errorbar", hcaes(x = fit, low = lwr, high = upr))
+```
+
+
+
+## Número reprodutivo diário $R_{t}$ ARS Norte
+
+```{r}
+
+
+Rt_nonparam_si <- 
+    estimate_R(
+        covid_r$confirmados_var_norte, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Rt_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+R_t_norte <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+```
+
+## Número reprodutivo diário $R_{t}$ ARS Centro
+
+```{r}
+
+
+
+Rt_nonparam_si <- 
+    estimate_R(
+        covid_r$confirmados_var_centro, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Rt_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+R_t_centro <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+
+```
+
+
+## Número reprodutivo diário $R_{t}$ ARS Lisboa e Vale do Tejo
+
+```{r}
+Rt_nonparam_si <- 
+    estimate_R(
+        covid_r$confirmados_var_lvt, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Rt_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+R_t_lvt <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+
+```
+
+
+## Número reprodutivo diário $R_{t}$ ARS Alentejo
+
+```{r}
+
+covid_r_alentejo<-covid_pt_r  %>%
+  filter(
+    Data>as.Date("2020-03-15")
+  ) %>%
+  dplyr::mutate(t_start = dplyr::row_number())
+
+Rt_nonparam_si <- 
+    estimate_R(
+        covid_r_alentejo$confirmados_var_alentejo, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Rt_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+R_t_alentejo <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+
+```
+
+## Número reprodutivo diário $R_{t}$ ARS Algarve
+
+```{r}
+Rt_nonparam_si <- 
+    estimate_R(
+        covid_r$confirmados_var_algarve, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Rt_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+R_t_algarve <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+
+```
+
+## Número reprodutivo diário $R_{t}$ Açores
+
+```{r}
+
+covid_r_azores<-covid_pt_r  %>%
+  filter(
+    Data>as.Date("2020-03-15")
+  ) %>%
+  dplyr::mutate(t_start = dplyr::row_number())
+
+Rt_nonparam_si <- 
+    estimate_R(
+        covid_r_azores$confirmados_var_acores, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Rt_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+R_t_azores <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+
+```
+
+## Número reprodutivo diário $R_{t}$ Mardeira
+
+```{r}
+
+covid_r_madeira<-covid_pt_r  %>%
+  filter(
+    Data>as.Date("2020-03-15")
+  ) %>%
+  dplyr::mutate(t_start = dplyr::row_number())
+
+Rt_nonparam_si <- 
+    estimate_R(
+        covid_r_madeira$confirmados_var_madeira, 
+        method = "uncertain_si",
+        config = sens_configs
+        )
+### inspect R_e estimate
+#plot(Re_nonparam_si, legend = FALSE)
+## Posterio sample R_e estimate
+## Posterio sample R_e estimate
+sample_windows <- seq(length(Rt_nonparam_si$R$t_start))
+
+posterior_R_t <- 
+    map(
+        .x = sample_windows,
+        .f = function(x) {
+            
+            posterior_sample_obj <- 
+                sample_posterior_R(
+                    R = Rt_nonparam_si,
+                    n = 1000, 
+                    window = x
+                )
+            
+            posterior_sample_estim <- 
+                data.frame(
+                    window_index = x,
+                    window_t_start = Rt_nonparam_si$R$t_start[x],
+                    window_t_end = Rt_nonparam_si$R$t_end[x],
+                    date_point = covid_r[covid_r$t_start == Rt_nonparam_si$R$t_end[x], "Data"],
+                    R_e_median = median(posterior_sample_obj),
+                    R_e_q0025 = quantile(posterior_sample_obj, probs = 0.025),
+                    R_e_q0975 = quantile(posterior_sample_obj, probs = 0.975)
+                )
+            
+            return(posterior_sample_estim)
+            
+        }
+    ) %>% 
+    reduce(bind_rows)
+
+R_t_madeira <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+
+```
+
+
+# Número reprodutivo diário $R_{t}$
+
+## Número reprodutivo diário $R_{t}$ Portugal
+
+```{r}
+
+rt_portugal <- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - Portugal") %>% 
+  hc_subtitle(text = "Fonte: Dados da Direção Geral da Saúde | Modelo autores (janela temporal de 7 dias)") %>% 
+  hc_xAxis(categories = format(R_t_pt$Data, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+
+    hc_add_series(R_t_pt, 
+                hcaes( low = lwr, high = upr),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = R_t_pt$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+rt_portugal
+
+
+````
+
+
+## Número reprodutivo diário $R_{t}$ ARS Norte
+
+```{r}
+
+rt_norte <- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - ARS Norte") %>% 
+  hc_subtitle(text = "Fonte: Dados da Direção Geral da Saúde | Modelo autores (janela temporal de 7 dias)") %>% 
+  hc_xAxis(categories = format(R_t_norte$Data, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+
+    hc_add_series(R_t_norte, 
+                hcaes( low = lwr, high = upr),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = R_t_norte$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+rt_norte
+
+
+````
+
+## Número reprodutivo diário $R_{t}$ ARS Centro
+
+```{r}
+
+rt_centro <- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - ARS Centro") %>% 
+  hc_subtitle(text = "Fonte: Dados da Direção Geral da Saúde | Modelo autores (janela temporal de 7 dias)") %>% 
+  hc_xAxis(categories = format(R_t_centro$Data, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+
+    hc_add_series(R_t_centro, 
+                hcaes( low = lwr, high = upr),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = R_t_centro$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+rt_centro
+
+
+````
+
+
+## Número reprodutivo diário $R_{t}$ ARS Lisboa e Vale do Tejo
+
+```{r}
+
+rt_lvt <- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - ARS Lisboa e Vale do Tejo") %>% 
+  hc_subtitle(text = "Fonte: Dados da Direção Geral da Saúde | Modelo autores (janela temporal de 7 dias)") %>% 
+  hc_xAxis(categories = format(R_t_lvt$Data, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+
+    hc_add_series(R_t_lvt, 
+                hcaes( low = lwr, high = upr),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = R_t_lvt$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+rt_lvt
+
+
+````
+
+## Número reprodutivo diário $R_{t}$ ARS Alentejo
+
+```{r}
+
+rt_alentejo <- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - ARS Alentejo") %>% 
+  hc_subtitle(text = "Fonte: Dados da Direção Geral da Saúde | Modelo autores (janela temporal de 7 dias)") %>% 
+  hc_xAxis(categories = format(R_t_alentejo$Data, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+
+    hc_add_series(R_t_alentejo, 
+                hcaes( low = lwr, high = upr),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = R_t_alentejo$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+rt_alentejo
+
+
+````
+
+
+## Número reprodutivo diário $R_{t}$ ARS Algarve
+
+```{r}
+
+rt_algarve <- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - ARS Algarve") %>% 
+  hc_subtitle(text = "Fonte: Dados da Direção Geral da Saúde | Modelo autores (janela temporal de 7 dias)") %>% 
+  hc_xAxis(categories = format(R_t_algarve$Data, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+
+    hc_add_series(R_t_algarve, 
+                hcaes( low = lwr, high = upr),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = R_t_algarve$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+rt_algarve
+
+
+````
+
+## Número reprodutivo diário $R_{t}$ Açores
+
+```{r}
+
+rt_azores <- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - Açores") %>% 
+  hc_subtitle(text = "Fonte: Dados da Direção Geral da Saúde | Modelo autores (janela temporal de 7 dias)") %>% 
+  hc_xAxis(categories = format(R_t_azores$Data, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+
+    hc_add_series(R_t_azores, 
+                hcaes( low = lwr, high = upr),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = R_t_azores$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+rt_azores
+
+
+````
+
+## Número reprodutivo diário $R_{t}$ Madeira
+
+```{r}
+
+rt_madeira <- highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Número Reprodutivo Rt - Madeira") %>% 
+  hc_subtitle(text = "Fonte: Dados da Direção Geral da Saúde | Modelo autores (janela temporal de 7 dias)") %>% 
+  hc_xAxis(categories = format(R_t_madeira$Data, "%b %d"),
+           tickmarkPlacement = "on",
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
+  hc_yAxis(title = list(text = "Rt"),min = 0, 
+           plotLines = list(
+             list(label = list(text = "Rt = 1"),
+                  color = "#525252",
+                  width = 2,
+                  value = 1,
+                  dashStyle = "shortdash"))) %>% 
+
+    hc_add_series(R_t_madeira, 
+                hcaes( low = lwr, high = upr),     
+#                id = "ForecastRange-FL", 
+                type = "arearange", 
+                name = "Incerteza", 
+                color = "#d9d9d9") %>% 
+      hc_add_series(data = R_t_madeira$fit,
+                name = "Rt", 
+                color = "#e6550d")
+
+rt_madeira
+
+
+````
+
+
+
