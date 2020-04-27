@@ -39,7 +39,7 @@ library(incidence)
 
 
 ```{r}
-covid_pt<- read_csv("data.csv")
+covid_pt<- read_csv("script/data.csv")
 ```
 
 
@@ -107,6 +107,8 @@ covid_pt_r <- covid_pt %>%
 
 
 ```{r estim-Re-uncertain-si}
+
+
 library(purrr)
 library(incidence)
 covid_r<-covid_pt_r  %>%
@@ -172,7 +174,28 @@ posterior_R_t <-
     ) %>% 
     reduce(bind_rows)
 
+R_t_pt <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
+
 ```
+
+```{r}
+posterior_R_e <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2))
+
+posterior_R_tlast<-posterior_R_e %>% 
+  filter(Data==last(Data))
+
+highchart() %>% 
+  hc_chart(type = "bar") %>% 
+  hc_add_series(posterior_R_tlast, "errorbar", hcaes(x = fit, low = lwr, high = upr))
+```
+
 
 # Número reprodutivo diário $R_{t}$
 
@@ -184,13 +207,25 @@ posterior_R_e <- posterior_R_t %>%
   mutate(fit = round(R_e_median, 2),
          lwr=round(R_e_q0025, 2),
           upr=round(R_e_q0975, 2))
+
 rt_portugal <- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
   hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
   hc_xAxis(categories = format(posterior_R_e$Data, "%b %d"),
            tickmarkPlacement = "on",
-           title = list(enabled = FALSE)) %>% 
+           title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'))) %>% 
   hc_yAxis(title = list(text = "Rt"),min = 0, 
            plotLines = list(
              list(label = list(text = "Rt = 1"),
@@ -210,6 +245,8 @@ rt_portugal <- highchart() %>%
                 color = "#e6550d")
 
 rt_portugal
+
+
 ````
 
 ## Número reprodutivo diário $R_{t}$ ARS Norte
@@ -256,6 +293,11 @@ posterior_R_t <-
     ) %>% 
     reduce(bind_rows)
 
+R_t_norte <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
 ```
 
 ```{r}
@@ -336,6 +378,12 @@ posterior_R_t <-
         }
     ) %>% 
     reduce(bind_rows)
+
+R_t_centro <- posterior_R_t %>%
+  mutate(fit = round(R_e_median, 2),
+         lwr=round(R_e_q0025, 2),
+          upr=round(R_e_q0975, 2)) %>%
+  select(Data, fit, lwr, upr)
 
 ```
 
