@@ -33,7 +33,8 @@ library(incidence)
 
 
 ```{r}
-covid_pt<- read_csv("script/data.csv")
+covid_pt <- read_csv("data.csv")
+
 ```
 
 
@@ -193,10 +194,11 @@ highchart() %>%
 
 
 
-## Número reprodutivo diário $R_{t}$ ARS Norte
+
 
 ```{r}
 
+## Número reprodutivo diário $R_{t}$ ARS Norte
 
 Rt_nonparam_si <- 
     estimate_R(
@@ -246,10 +248,10 @@ R_t_norte <- posterior_R_t %>%
   select(Data, fit, lwr, upr)
 ```
 
-## Número reprodutivo diário $R_{t}$ ARS Centro
+
 
 ```{r}
-
+## Número reprodutivo diário $R_{t}$ ARS Centro
 
 
 Rt_nonparam_si <- 
@@ -302,9 +304,10 @@ R_t_centro <- posterior_R_t %>%
 ```
 
 
-## Número reprodutivo diário $R_{t}$ ARS Lisboa e Vale do Tejo
 
 ```{r}
+
+## Número reprodutivo diário $R_{t}$ ARS Lisboa e Vale do Tejo
 Rt_nonparam_si <- 
     estimate_R(
         covid_r$confirmados_var_lvt, 
@@ -355,19 +358,20 @@ R_t_lvt <- posterior_R_t %>%
 ```
 
 
-## Número reprodutivo diário $R_{t}$ ARS Alentejo
+
 
 ```{r}
+## Número reprodutivo diário $R_{t}$ ARS Alentejo
 
 covid_r_alentejo<-covid_pt_r  %>%
-  filter(
-    Data>as.Date("2020-03-15")
-  ) %>%
+#  filter(
+#    Data>as.Date("2020-03-13")
+#  ) %>%
   dplyr::mutate(t_start = dplyr::row_number())
 
 Rt_nonparam_si <- 
     estimate_R(
-        covid_r_alentejo$confirmados_var_alentejo, 
+        covid_r$confirmados_var_alentejo, 
         method = "uncertain_si",
         config = sens_configs
         )
@@ -414,9 +418,11 @@ R_t_alentejo <- posterior_R_t %>%
 
 ```
 
-## Número reprodutivo diário $R_{t}$ ARS Algarve
+
 
 ```{r}
+## Número reprodutivo diário $R_{t}$ ARS Algarve
+
 Rt_nonparam_si <- 
     estimate_R(
         covid_r$confirmados_var_algarve, 
@@ -466,9 +472,10 @@ R_t_algarve <- posterior_R_t %>%
 
 ```
 
-## Número reprodutivo diário $R_{t}$ Açores
+
 
 ```{r}
+## Número reprodutivo diário $R_{t}$ Açores
 
 covid_r_azores<-covid_pt_r  %>%
   filter(
@@ -478,7 +485,7 @@ covid_r_azores<-covid_pt_r  %>%
 
 Rt_nonparam_si <- 
     estimate_R(
-        covid_r_azores$confirmados_var_acores, 
+        covid_r$confirmados_var_acores, 
         method = "uncertain_si",
         config = sens_configs
         )
@@ -525,9 +532,10 @@ R_t_azores <- posterior_R_t %>%
 
 ```
 
-## Número reprodutivo diário $R_{t}$ Mardeira
+
 
 ```{r}
+## Número reprodutivo diário $R_{t}$ Mardeira
 
 covid_r_madeira<-covid_pt_r  %>%
   filter(
@@ -537,7 +545,7 @@ covid_r_madeira<-covid_pt_r  %>%
 
 Rt_nonparam_si <- 
     estimate_R(
-        covid_r_madeira$confirmados_var_madeira, 
+        covid_r$confirmados_var_madeira, 
         method = "uncertain_si",
         config = sens_configs
         )
