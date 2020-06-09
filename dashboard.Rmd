@@ -811,7 +811,6 @@ p3
 ### Número reprodutivo diário $R_{t}$
 
 ```{r}
-
 posterior_R_e <- posterior_R_t %>%
   mutate(fit = round(R_e_median, 2),
          lwr=round(R_e_q0025, 2),
@@ -820,10 +819,28 @@ posterior_R_e <- posterior_R_t %>%
 p4<- highchart() %>%
   hc_add_theme(hc_theme_smpl()) %>% 
   hc_title(text = "Número Reprodutivo Rt - número médio de casos secundários por nova infecção (janela temporal de 7 dias)") %>% 
-  hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>% 
-  hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
+  hc_subtitle(text = "Fonte: Autores baseados nos dados da DGS") %>%
+    hc_xAxis(categories = format(posterior_R_e$date_point, "%b %d"),
            tickmarkPlacement = "on",
-           title = list(enabled = FALSE)) %>% 
+                      title = list(enabled = FALSE),
+                      plotLines = list(
+             list(label = list(text = "Ecerramento Escolas"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 9,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 15,
+                  dashStyle = 'Dot'),
+             list(label = list(text = "Fim do Estado de Emergencia"),
+                  color = "#bdbdbd",
+                  width = 2,
+                  value = 49,
+                  dashStyle = 'Dot')
+             )) %>% 
+
   hc_yAxis(title = list(text = "Rt"),min = 0, 
            plotLines = list(
              list(label = list(text = "Rt = 1"),
@@ -856,8 +873,10 @@ p4<- highchart() %>%
                 color = "#e6550d")
 
 ### changed the layer order in the chain do that the median estimates is on top
+```
 
 
+```{r}
 p4
 ```
 

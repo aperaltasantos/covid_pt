@@ -597,6 +597,23 @@ R_t_madeira <- posterior_R_t %>%
 
 ## Número reprodutivo diário $R_{t}$ Portugal
 
++ O Rt é um indicador muito útil para aferir a velocidade de expansão ou contração da pandemia
+
++ De forma simples mede o número de pessoas a que cada caso com COVID-19 transmite a doença, se transmitir a mais de uma pessoa a epidemia está em expansão (número de novos casos vai aumentar), se transmitir em média a menos de uma pessoa a epidemia está em contração (número de novos casos a diminuir).
+
++ Quanto maior for a capacidade intrínseca do vírus se transmitir pessoa-a-pessoa, quanto mais tempo os infetados estiverem na comunidade e quanto maior for o número de contactos do infetado maior será a probabilidade de transmitir a doença, e maior será o Rt. 
+
++ Medidas que rapidamente identifiquem e isolem os casos positivos, que diminuam a exposição de terceiros a casos infetados que ainda não sabem que o são, e diminuição do número de contactos sociais diminuem o Rt, nesta fase da pandemia.
+
++ Tivemos no decurso da pandemia em Portugal 3 grandes fases até agora:
+
++ Uma primeira fase até à implementação de medidas de distanciamento social, com um Rt que é o R natural do vírus, uma vez que a população é toda suscetível
++ Uma segunda fase depois da implementação de medidas de decréscimo do Rt mas ainda acima de 1
++ Uma terceira fase de estabilização do Rt que vai oscilando entre valores de um pouco acima de 1 e um pouco abaixo de 1
+
++ Nas últimas semanas temos verificado uma diminuição sustentada do número de pessoas internadas em hospital e em cuidados intensivos. É um sinal positivo e dá alguma segurança que existe capacidade de resposta 
+
+
 ```{r}
 
 rt_portugal <- highchart() %>%
@@ -643,6 +660,8 @@ rt_portugal
 
 ## Número reprodutivo diário $R_{t}$ ARS Norte
 
++ Desde o dia 17 de abril um Rt abaixo de 1, apesar de estar sempre muito próximo da unidade. Muito paulatinamente o número de novos casos vai diminuindo.
+
 ```{r}
 
 rt_norte <- highchart() %>%
@@ -687,6 +706,8 @@ rt_norte
 ````
 
 ## Número reprodutivo diário $R_{t}$ ARS Centro
+
++ Desde o dia 17 de abril um Rt abaixo de 1, esta neste momento por volta dos 0.8
 
 ```{r}
 
@@ -734,6 +755,8 @@ rt_centro
 
 ## Número reprodutivo diário $R_{t}$ ARS Lisboa e Vale do Tejo
 
++ Teve um aumento do Rt na última semana de Abril acima de 1, relacionado com um número elevado de casos confirmados num hostel, 138 casos segundo o expresso.
+
 ```{r}
 
 rt_lvt <- highchart() %>%
@@ -778,6 +801,8 @@ rt_lvt
 ````
 
 ## Número reprodutivo diário $R_{t}$ ARS Alentejo
+
++ Apesar de ter um número de novos casos pequeno, o Rt esta ligeiramente acima de 1
 
 ```{r}
 
@@ -825,6 +850,8 @@ rt_alentejo
 
 ## Número reprodutivo diário $R_{t}$ ARS Algarve
 
++ Tem estado estável com um Rt abaixo de 1 desde o dia 11 de abril de 20
+
 ```{r}
 
 rt_algarve <- highchart() %>%
@@ -869,6 +896,8 @@ rt_algarve
 ````
 
 ## Número reprodutivo diário $R_{t}$ Açores
+
++ Rt abaixo desde dia  16 de Abril mas recentemente subiu acima de 1, atualmente esta a 1.4 
 
 ```{r}
 
@@ -915,6 +944,8 @@ rt_azores
 
 ## Número reprodutivo diário $R_{t}$ Madeira
 
++ Teve um aumento pronunciado do Rt no período de 19 a 26 de Abril, relacionado com um surto (confirmar esta info)
+
 ```{r}
 
 rt_madeira <- highchart() %>%
@@ -958,5 +989,40 @@ rt_madeira
 
 ````
 
+# Mensagens
+
++ O Rt é um indicador importante, mas faz parte de um painel de indicadores que devemos monitorizar para avaliar o impacto da pandemia, é uma peça do puzzle. 
++ Seria benéfico que fossem públicos os valores diários ou semanais calculados pela equipa que presta assessoria científica ao Governo. Assim como a metodologia adotada. 
++ É fundamental começar a avaliar a capacidade que o pais tem de fazer devidamente o contact tracing dos casos positivos. Isso implica discutir qual o estado atual, se os recursos alocados são suficientes e se as soluções tecnológicas utilizadas atualmente são suficientes ou se devemos planear uma solução de apoio ao contact tracing digitial. Não discutir o problema não nos ajuda a resolve-lo. 
+
+# Limitações 
+
++ O nosso método utiliza a data de notificação por dia para calculo dos novos casos
++ Não foi feito nenhum ajustamento para o atraso da notificação nem para a possibilidade de sub diagnostico 
++ Os números em regiões com poucos casos devem ser interpretados com especial precaução, pois aumentos relacionados com uma cadeia de transmissão podem alterar muito o Rt
++ O nosso método de calculo é usados por outros grupos de investigação, mas existem outros métodos que podem obter resultados ligeiramente diferentes resultados de diferentes opções metodológicas 
+
+__$R_{t}$__ 
+
+O número reprodutivo no período temporal _t_ ('$R_{t}$') estima o número médio de casos secundários infectados por um caso durante o seu período infeccioso, para o  período de tempo _t_. Sendo assim, este número mede a dinâmica de transmissão de uma infecção num período temporal específico, podendo ser usado como um indicador "instantâneo" da transmissão (velocímetro).
+
+Tal como um velocímetro, $R_{t}$ permite indicar quão rápido decorre a transmissão (se $R_{t}$ estiver acima de 1, a transmissão está a decorrer a um ritmo elevado e a epidemia está a alargar-se), bem como se esta se encontra em aceleração ou desaceleração, ao longo de um determinado período de tempo (ou seja, se $R_{t}$ se está a afastar ou aproximar de 1, respectivamente).
+
+O período temporal de cálculo utilizado abrange uma janela temporal de 7 dias. Exemplificando, o valor de $R_{t}$ reportado em 17-03-2020 diz respeito ao período temporal de 7 dias que termina nesse dia (11 a 17 de Março). Este elemento deve ser acautelado na interpretação do valor de $R_{t}$ como sendo reflexo de uma janela de transmissão que decorreu, para este cálculo concreto, nos últimos 7 dias.
+
+Foi utilizado o método de cálculo de $R_{t}$ de [Cori A., _et. al._](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3816335/). O cálculo deste número requer a definição de uma estimativa do intervalo de série (_serial interval_) - número de dias entre o início de sintomas de um caso e o início de sintomas de um caso secundário do primeiro - para a infecção em estudo. Para o efeito, foram utilizados os valores reportados por [Abbott S., _et. al._](https://cmmid.github.io/topics/covid19/current-patterns-transmission/global-time-varying-transmission.html) - média de 4,7 dias (Intervalo de Credibilidade 95% [CrI 95% CrI]: 3,7 - 6,0) e desvio padrão de 2,9 dias (CrI 95% : 1,9 - 4,9)).
+
+Os cálculos foram efectuados com o software _R_, versão 3.6.1, e pacote _EpiEstim_ versão 2.2-1.
+
+Não foi considerado o efeito dos casos importados.
+
+Não foi considerado, nesta fase de análise, o atraso de reporte dos novos casos.
+
+Os dados do novos casos por dia foram calculados com base no boletim diário da Direcção-Geral da Saúde. 
 
 
+__Autores da análise__ 
+
+André Peralta-Santos e Luís Alves de Sousa 
+
+Autor do comentário aos indicadores André Peralta-Santos
