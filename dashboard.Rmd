@@ -77,7 +77,7 @@ library(here)
 
 ```{r}
 u <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJm8oY12efrr4DFOPkc7gscFRc-10_xcEniSU64nF2vwkDJNPF2w0xcitSXezst5LXi3FCn1HCcIqG/pub?output=csv"
-tc <- getURL(u, ssl.verifypeer=FALSE)
+tc <- getURL(u, ssl.verifypeer=FALSE, .opts=curlOptions(followlocation=TRUE, cookiefile="nosuchfile"))
 covid_pt <- read.csv(textConnection(tc))
 ```
 
